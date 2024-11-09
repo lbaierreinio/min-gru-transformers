@@ -63,6 +63,5 @@ dependencies:
   - zstd=1.5.6=hfb09047_0
   - pip:
       - fsspec==2024.10.0
-      - mingru-pytorch==0.0.12
       - sympy==1.13.1
 prefix: /opt/anaconda3/envs/pytorch_env
