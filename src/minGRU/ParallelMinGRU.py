@@ -9,14 +9,26 @@ class ParallelMinGRU(nn.Module):
         self.linear_z = nn.Linear(dim_x, dim_h)
         self.linear_h = nn.Linear(dim_x, dim_h)
     
-    '''
-    x: (batch_size, seq_len, input_size)
-    h_0: (batch_size, 1, hidden_size)
-    '''
+    def log_g(self, x):
+        return torch.where(x >= 0, torch.log(F.relu(x)+0.5), -F.softplus(-x))
+
     def forward(self, x, h_0):
-        z = torch.sigmoid(self.linear_z(x))
-        h_tilde = self.linear_h(x)
-        h = parallel_scan_log((1-z), torch.cat([h_0, z*h_tilde], dim=1))
+        """
+        Compute the forward pass.
+
+        Args:
+            x: torch.Tensor, shape (batch_size, seq_len, input_size)
+            h_0: torch.Tensor, shape (batch_size, 1, hidden_size)
+        
+        Returns:
+            h: torch.Tensor, shape (batch_size, seq_len, hidden_size)
+        """
+        k = self.linear_z(x) 
+        log_z = -F.softplus(-k) # Log (z) 
+        log_one_minus_z = -F.softplus(k) # Log (1 - z)
+        log_h_0 = self.log_g(h_0)
+        log_tilde_h = self.log_g(self.linear_h(x))
+        h = parallel_scan_log(log_one_minus_z, torch.cat([log_h_0, log_z + log_tilde_h], dim=1))
         return h
 
 
