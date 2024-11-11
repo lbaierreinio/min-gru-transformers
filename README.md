@@ -7,6 +7,6 @@
 1) Clone the repository onto your machine.
 2) Create the virtual environment: ```conda env create -f environment.yml```
 3) Activate the environment: ```conda activate pytorch_env```
-4) Ensure the project is in your Python Path: ```export PYTHONPATH="$PYTHONPATH:/path/to/repository```
+4) Ensure the project is in your Python Path: ```export PYTHONPATH="$PYTHONPATH:/path/to/repository"```
 5) Run test cases: ```pytest```
 
