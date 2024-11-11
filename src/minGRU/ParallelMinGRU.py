@@ -8,7 +8,6 @@ class ParallelMinGRU(nn.Module):
         super().__init__()
         self.linear_z = nn.Linear(dim_x, dim_h) # Linear layer for producing z from x
         self.linear_h = nn.Linear(dim_x, dim_h) # Linear layer for producing candidate state h_tilde from x
-        self.linear_o = nn.Linear(dim_h, dim_x) # Linear layer for producing output from hidden state. TODO: Verify dimensions
 
     def log_g(self, x):
         return torch.where(x >= 0, torch.log(F.relu(x)+0.5), -F.softplus(-x))
@@ -32,9 +31,8 @@ class ParallelMinGRU(nn.Module):
         log_tilde_h = self.log_g(tilde_h) # Log candidate state
         # Parallel scan (log z + log h_tilde since we are using log, and had z * h_tilde in the original implementation)
         h = parallel_scan_log(log_one_minus_z, torch.cat([log_h_0, log_z + log_tilde_h], dim=1))
-
-        # TODO: Verify that this is what we want to return (alternative is declaring linear layer elsewhere)
-        h_out = self.linear_o(h)
-        return h_out
+        
+        # Return h[1:t]
+        return h
 
 
