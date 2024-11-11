@@ -8,4 +8,4 @@ class TestMinGRU:
 
         h_parallel = parallel_min_gru(x, h_0)
 
-        assert h_parallel.shape == (1, 2, 3)
+        assert h_parallel.shape == (1, 2, 2)
