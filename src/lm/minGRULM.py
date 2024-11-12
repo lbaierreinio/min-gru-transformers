@@ -69,8 +69,7 @@ class minGRULM(nn.Module):
         # Keep passing prev_hidden to the next layer
         for norm1, mingru, norm2, fcnn in self.layers:
             # TODO: Add convolutional layer
-            h_prev = mingru(norm1(x), h_prev)
-            x = h_prev + x # Skip connection over RMSNorm & MinGRU
+            x = mingru(norm1(x), h_prev) + x # Skip connection over RMSNorm & MinGRU
             x = fcnn(norm2(x)) + x # Skip connection over RMSNorm & FCNN
         
         # Compute logits
