@@ -1,22 +1,24 @@
-from src.minGRU.ParallelMinGRU import ParallelMinGRU
+from src.minGRU.minGRU import MinGRU
 import torch
 class TestMinGRU:
     def test_min_gru_parallel(self):
         batch_size, seq_len, input_size, hidden_size = 1, 2, 2, 3
-        parallel_min_gru = ParallelMinGRU(input_size, hidden_size)
+        min_gru = MinGRU(input_size, hidden_size)
         x = torch.randn((batch_size, seq_len, input_size))
         h_0 = torch.randn((batch_size, 1, hidden_size))
 
-        h_parallel = parallel_min_gru(x, h_0)
+        o, h = min_gru(x, h_0)
 
-        assert h_parallel.shape == (batch_size, seq_len, input_size)
+        assert o.shape == (batch_size, seq_len, input_size)
+        assert h.shape == (batch_size, seq_len, hidden_size)
     
     def test_min_gru_sequential(self):
         batch_size, seq_len, input_size, hidden_size = 1, 1, 2, 3
-        parallel_min_gru = ParallelMinGRU(input_size, hidden_size)
+        min_gru = MinGRU(input_size, hidden_size)
         x = torch.randn((batch_size, seq_len, input_size))
         h_0 = torch.randn((batch_size, 1, hidden_size))
 
-        h_parallel = parallel_min_gru(x, h_0)
+        o, h = min_gru(x, h_0)
 
-        assert h_parallel.shape == (batch_size, seq_len, input_size)
+        assert o.shape == (batch_size, seq_len, input_size)
+        assert h.shape == (batch_size, seq_len, hidden_size)

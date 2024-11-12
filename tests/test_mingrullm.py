@@ -1,4 +1,4 @@
-from src.lm.minGRULM import minGRULM
+from src.lm.minGRULM import MinGRULM
 import torch
 
 class TestMinGRULM:
@@ -11,7 +11,7 @@ class TestMinGRULM:
         x = torch.randint(0, num_tokens, (batch_size, seq_len), dtype=torch.long)
         h_0 = torch.zeros((batch_size, 1, hidden_dim))
 
-        mingru_lm = minGRULM(
+        mingru_lm = MinGRULM(
             num_tokens=num_tokens,
             input_dim=input_dim,
             hidden_dim=hidden_dim,

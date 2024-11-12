@@ -1,7 +1,7 @@
 from torch import nn
 import torch.nn.functional as F
 import torch.nn.modules.normalization as N
-from src.minGRU.ParallelMinGRU import ParallelMinGRU
+from src.minGRU.minGRU import MinGRU
 
 class FCNN(nn.Module):
     def __init__(self, dim, hidden_dim):
@@ -30,15 +30,16 @@ class CausalDepthWiseConv1D(nn.Module):
         x = self.net(x)
         return x.transpose(1, 2) # b d n -> b n d
 
-class minGRULM(nn.Module):
+class MinGRULM(nn.Module):
     """
-    The minGRULM class.
+    The MinGRULM class.
     args:
         num_tokens: int, the number of tokens in the vocabulary
         input_dim: int, the dimension of each token in the input sequence
         hidden_dim: int, the dimension of the hidden state
         num_layers: int, the depth of the model
         conv_kernel_size: int, the kernel size of the convolutional layer
+        prev_hiddens: torch.Tensor, shape (batch_size, num_layers, hidden_size) # TODO: Verify shape
     """
     def __init__(self,
         *,
@@ -46,7 +47,7 @@ class minGRULM(nn.Module):
         input_dim,
         hidden_dim,
         num_layers,
-        conv_kernel_size=3 
+        conv_kernel_size=3,
     ):
         super().__init__()
         self.num_layers = num_layers
@@ -60,7 +61,7 @@ class minGRULM(nn.Module):
             self.layers.append(nn.ModuleList([
                 CausalDepthWiseConv1D(input_dim, conv_kernel_size),
                 N.RMSNorm(input_dim), # TODO: Verify behaviour with these arguments
-                ParallelMinGRU(input_dim, hidden_dim),
+                MinGRU(input_dim, hidden_dim),
                 N.RMSNorm(input_dim), # TODO: Verify behaviour with these arguments
                 FCNN(input_dim, hidden_dim)
             ]))
@@ -81,10 +82,14 @@ class minGRULM(nn.Module):
         """
         x = self.embedding(x)
 
+        h_next = []
+
         for conv, norm1, mingru, norm2, fcnn in self.layers: # Iterate over layers
             x = conv(x) + x # Convolution layer with skip connection
-            x = mingru(norm1(x), h_prev) + x # Skip connection over RMSNorm & MinGRU
+            min_gru_out, h_l_next = mingru(norm1(x), h_prev) # MinGRU layer
+            x = min_gru_out + x # Skip over MinGRU
             x = fcnn(norm2(x)) + x # Skip connection over RMSNorm & FCNN
+            h_next.append(h_l_next) # Add hidden state from this layer
         
         # Compute embedding
         embedding = self.out(self.norm(x))

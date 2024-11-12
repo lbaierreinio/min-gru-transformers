@@ -3,8 +3,7 @@ import torch.nn as nn
 import torch.nn.functional as F
 from src.utils.utility import parallel_scan_log
 
-class ParallelMinGRU(nn.Module):
-    
+class MinGRU(nn.Module):
     def __init__(self, dim_x, dim_h): # Note: MinGRU paper suggests embedding dimension of 128
         super().__init__()
         self.linear_z = nn.Linear(dim_x, dim_h) # Linear layer for producing z from x
@@ -29,7 +28,8 @@ class ParallelMinGRU(nn.Module):
         tilde_h = self.linear_h(x) # Candidate state
 
         if x.shape[1] == 1: # Sequential Mode
-            h = (1 - k) * h_prev + k * tilde_h # h[t]
+            z = torch.sigmoid(k)
+            h = (1 - z) * h_prev + z * tilde_h # h[t]
         else: # Parallel Mode
             log_z = -F.softplus(-k) # Log (z) 
             log_one_minus_z = -F.softplus(k) # Log (1 - z)
@@ -39,4 +39,4 @@ class ParallelMinGRU(nn.Module):
         
         # Transform hidden state to output
         out = self.linear_o(h)
-        return out
+        return out, h
