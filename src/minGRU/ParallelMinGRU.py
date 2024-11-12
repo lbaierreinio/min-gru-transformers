@@ -14,7 +14,7 @@ class ParallelMinGRU(nn.Module):
     def log_g(self, x):
         return torch.where(x >= 0, torch.log(F.relu(x)+0.5), -F.softplus(-x))
 
-    def forward(self, x, h_prev): # TODO: Figure out what h_0 is
+    def forward(self, x, h_prev):
         """
         Compute the forward pass.
 
@@ -29,14 +29,11 @@ class ParallelMinGRU(nn.Module):
         tilde_h = self.linear_h(x) # Candidate state
         log_z = -F.softplus(-k) # Log (z) 
         log_one_minus_z = -F.softplus(k) # Log (1 - z)
-        log_h_prev = self.log_g(h_prev) # Hidden state at time 0
+        log_h_prev = self.log_g(h_prev) # Previous hidden state
         log_tilde_h = self.log_g(tilde_h) # Log candidate state
         # Parallel scan (log z + log h_tilde since we are using log, and had z * h_tilde in the original implementation)
-        h = parallel_scan_log(log_one_minus_z, torch.cat([log_h_prev, log_z + log_tilde_h], dim=1))
-        """
-        Return h[1:t] through linear layer
-        """
-        out = self.linear_o(h[:, 1:]) # Return h[1:t] as the output
+        h = parallel_scan_log(log_one_minus_z, torch.cat([log_h_prev, log_z + log_tilde_h], dim=1)) # parallel_scan_log returns h[1:t]
+        out = self.linear_o(h)
         return out
 
 

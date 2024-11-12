@@ -1,9 +1,8 @@
-import torch
 from torch import nn
 import torch.nn.functional as F
 import torch.nn.modules.normalization as N
 
-from minGRU.ParallelMinGRU import ParallelMinGRU
+from src.minGRU.ParallelMinGRU import ParallelMinGRU
 
 def FCLayer(dim, hidden_dim):
     """
@@ -14,7 +13,7 @@ def FCLayer(dim, hidden_dim):
     """
     return nn.Sequential(
         nn.Linear(dim, hidden_dim),
-        nn.GeLU(), # TODO: Verify use of activation function and/or consider alternatives.
+        nn.GELU(), # TODO: Verify use of activation function and/or consider alternatives.
         nn.Linear(hidden_dim, dim)
     )
 
@@ -46,32 +45,33 @@ class minGRULM(nn.Module):
         self.layers = nn.ModuleList([])
 
         for _ in range(num_layers):
-            self.layers.append([
+            self.layers.append(nn.ModuleList([
                 # TODO: Add CausalDepthWiseConv1D
                 N.RMSNorm(input_dim), # TODO: Verify behaviour with these arguments
                 ParallelMinGRU(input_dim, hidden_dim),
                 N.RMSNorm(input_dim), # TODO: Verify behaviour with these arguments
                 FCLayer(input_dim, hidden_dim)
-            ])
+            ]))
 
         # Final layer
         self.norm = N.RMSNorm(input_dim)
         self.out = nn.Linear(input_dim, num_tokens)
 
-    def forward(self, x):
+    def forward(self, x, h_prev):
         """
         Forward pass of the model.
         args:
             x: torch.Tensor, shape (batch_size, seq_len, input_size)
+            h_prev: torch.Tensor, shape (batch_size, 1, hidden_size)
         """
-        x = self.embedding(x)
+        # x = self.embedding(x)
 
         # Keep passing prev_hidden to the next layer
         for norm1, mingru, norm2, fcnn in self.layers:
-            h_prev = mingru(norm1(x), next(prev_hiddens)) # TODO: What is h_0?
+            # TODO: Add convolutional layer
+            h_prev = mingru(norm1(x), h_prev)
             x = h_prev + x # Skip connection over RMSNorm & MinGRU
             x = fcnn(norm2(x)) + x # Skip connection over RMSNorm & FCNN
-            pass
         
         # Compute logits
         logits = self.out(self.norm(x))
