@@ -23,15 +23,20 @@ class ParallelMinGRU(nn.Module):
             h_prev: torch.Tensor, shape (batch_size, 1, hidden_size)
         
         Returns:
-            h: torch.Tensor, shape (batch_size, seq_len, input_size) # TODO: Verify this is correct output dimension
+            h: torch.Tensor, shape (batch_size, seq_len, input_size)
         """
         k = self.linear_z(x) 
         tilde_h = self.linear_h(x) # Candidate state
-        log_z = -F.softplus(-k) # Log (z) 
-        log_one_minus_z = -F.softplus(k) # Log (1 - z)
-        log_h_prev = self.log_g(h_prev) # Previous hidden state
-        log_tilde_h = self.log_g(tilde_h) # Log candidate state
-        # Parallel scan (log z + log h_tilde since we are using log, and had z * h_tilde in the original implementation)
-        h = parallel_scan_log(log_one_minus_z, torch.cat([log_h_prev, log_z + log_tilde_h], dim=1)) # parallel_scan returns h[1:t]
+
+        if x.shape[1] == 1: # Sequential Mode
+            h = (1 - k) * h_prev + k * tilde_h # h[t]
+        else: # Parallel Mode
+            log_z = -F.softplus(-k) # Log (z) 
+            log_one_minus_z = -F.softplus(k) # Log (1 - z)
+            log_h_prev = self.log_g(h_prev) # Previous hidden state
+            log_tilde_h = self.log_g(tilde_h) # Log candidate state
+            h = parallel_scan_log(log_one_minus_z, torch.cat([log_h_prev, log_z + log_tilde_h], dim=1)) # h[1:t]
+        
+        # Transform hidden state to output
         out = self.linear_o(h)
         return out

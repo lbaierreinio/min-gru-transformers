@@ -81,7 +81,6 @@ class minGRULM(nn.Module):
         """
         x = self.embedding(x)
 
-        # Keep passing prev_hidden to the next layer
         for conv, norm1, mingru, norm2, fcnn in self.layers: # Iterate over layers
             x = conv(x) + x # Convolution layer with skip connection
             x = mingru(norm1(x), h_prev) + x # Skip connection over RMSNorm & MinGRU
