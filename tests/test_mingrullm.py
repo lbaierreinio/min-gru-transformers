@@ -1,5 +1,6 @@
 from src.lm.minGRULM import minGRULM
 import torch
+
 class TestMinGRULM:
     def test_mingru_lm(self):
         batch_size = 2

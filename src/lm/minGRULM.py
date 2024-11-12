@@ -1,9 +1,7 @@
 from torch import nn
 import torch.nn.functional as F
 import torch.nn.modules.normalization as N
-
 from src.minGRU.ParallelMinGRU import ParallelMinGRU
-
 
 class FCNN(nn.Module):
     def __init__(self, dim, hidden_dim):

@@ -1,5 +1,6 @@
 from src.utils.utility import parallel_scan_log
 import torch
+
 class TestParallel:
     def test_parallel(self):
         batch_size, seq_len, hidden_size = 1, 2, 3 # TODO: Test case where batch_size > 1

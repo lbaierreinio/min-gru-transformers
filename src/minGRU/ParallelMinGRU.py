@@ -35,5 +35,3 @@ class ParallelMinGRU(nn.Module):
         h = parallel_scan_log(log_one_minus_z, torch.cat([log_h_prev, log_z + log_tilde_h], dim=1)) # parallel_scan returns h[1:t]
         out = self.linear_o(h)
         return out
-
-

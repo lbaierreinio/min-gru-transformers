@@ -22,4 +22,3 @@ class SequentialMinGRU(nn.Module):
         h_tilde = self.linear_h(x_t) # Candidate cell
         h_t = ((1 - z_t) * h_prev) + (z_t * h_tilde) # New hidden state
         return h_t
-
