@@ -22,7 +22,6 @@ def parallel_scan_log(a, b):
     # Pad each sequence with zero vector at beginning with dimension hidden_size
     a_star = F.pad(log_a_prime, (0,0,1,0))
     # Obtain log(b) - a_star and take logcumsumexp across seq_len dimension
-    print(log_b.shape, a_star.shape)
     log_x0_plus_b_star = torch.logcumsumexp(log_b - a_star, dim=1)
 
     log_x = a_star + log_x0_plus_b_star
