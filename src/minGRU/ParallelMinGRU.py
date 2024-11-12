@@ -1,7 +1,7 @@
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
-from src.utils.utility import parallel_scan
+from src.utils.utility import parallel_scan_log
 
 class ParallelMinGRU(nn.Module):
     
@@ -32,8 +32,7 @@ class ParallelMinGRU(nn.Module):
         log_h_prev = self.log_g(h_prev) # Previous hidden state
         log_tilde_h = self.log_g(tilde_h) # Log candidate state
         # Parallel scan (log z + log h_tilde since we are using log, and had z * h_tilde in the original implementation)
-        log_h = parallel_scan(log_one_minus_z, torch.cat([log_h_prev, log_z + log_tilde_h], dim=1)) # parallel_scan returns h[1:t]
-        h = torch.exp(log_h)
+        h = parallel_scan_log(log_one_minus_z, torch.cat([log_h_prev, log_z + log_tilde_h], dim=1)) # parallel_scan returns h[1:t]
         out = self.linear_o(h)
         return out
 

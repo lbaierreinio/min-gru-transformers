@@ -81,7 +81,7 @@ class minGRULM(nn.Module):
             x: torch.Tensor, shape (batch_size, seq_len, input_size)
             h_prev: torch.Tensor, shape (batch_size, 1, hidden_size). Note that in parallel mode, h_prev is always h[0].
         """
-        x = self.embedding(x)
+        # x = self.embedding(x)
 
         # Keep passing prev_hidden to the next layer
         for conv, norm1, mingru, norm2, fcnn in self.layers: # Iterate over layers
