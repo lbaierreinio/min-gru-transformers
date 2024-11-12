@@ -39,7 +39,6 @@ class MinGRULM(nn.Module):
         hidden_dim: int, the dimension of the hidden state
         num_layers: int, the depth of the model
         conv_kernel_size: int, the kernel size of the convolutional layer
-        prev_hiddens: torch.Tensor, shape (batch_size, num_layers, hidden_size) # TODO: Verify shape
     """
     def __init__(self,
         *,
@@ -72,26 +71,34 @@ class MinGRULM(nn.Module):
 
     def forward(self, x, h_prev):
         """
-        Forward pass of the model.
+        Forward pass of the model. In the sequential case, h_prev is
+        all of the hidden states from the previous token across all layers.
+        In the parallel case, h_prev is the initial hidden state for all layers.
+        Furthermore, in sequential case, seq_len should be 1.
         Args:
             x: torch.LongTensor, shape (batch_size, seq_len)    
-            h_prev: torch.Tensor, shape (batch_size, 1, hidden_dim). Note that in parallel mode, h_prev is always h[0].
+            h_prev: torch.Tensor, shape (batch_size, num_layers, hidden_dim).
         
         Returns:
             embedding: torch.Tensor, shape (batch_size, seq_len, hidden_dim)
         """
-        x = self.embedding(x)
+        x = self.embedding(x) # b s_l -> b s_l d
 
         h_next = []
 
+        h_prev_transpose = h_prev.transpose(0, 1) # b s_l d -> s_l b d
+
+        prev_hiddens = iter(h_prev_transpose)
+
         for conv, norm1, mingru, norm2, fcnn in self.layers: # Iterate over layers
+            next_prev_hidden = next(prev_hiddens).unsqueeze(1) # b 1 d
             x = conv(x) + x # Convolution layer with skip connection
-            min_gru_out, h_l_next = mingru(norm1(x), h_prev) # MinGRU layer
+            min_gru_out, h_l_next = mingru(norm1(x), next_prev_hidden) # MinGRU layer, using the previous hidden state from the appropriate layer.
             x = min_gru_out + x # Skip over MinGRU
             x = fcnn(norm2(x)) + x # Skip connection over RMSNorm & FCNN
             h_next.append(h_l_next) # Add hidden state from this layer
         
         # Compute embedding
-        embedding = self.out(self.norm(x))
+        out = self.out(self.norm(x))
 
-        return embedding
+        return out, h_next
