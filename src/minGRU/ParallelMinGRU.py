@@ -23,7 +23,7 @@ class ParallelMinGRU(nn.Module):
             h_prev: torch.Tensor, shape (batch_size, 1, hidden_size)
         
         Returns:
-            h: torch.Tensor, shape (batch_size, seq_len, hidden_size)
+            h: torch.Tensor, shape (batch_size, seq_len, input_size) # TODO: Verify this is correct output dimension
         """
         k = self.linear_z(x) 
         tilde_h = self.linear_h(x) # Candidate state
