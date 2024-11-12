@@ -72,16 +72,19 @@ class minGRULM(nn.Module):
 
         # Final layer
         self.norm = N.RMSNorm(input_dim)
-        self.out = nn.Linear(input_dim, num_tokens)
+        self.out = nn.Linear(input_dim, hidden_dim)
 
     def forward(self, x, h_prev):
         """
         Forward pass of the model.
-        args:
-            x: torch.Tensor, shape (batch_size, seq_len, input_size)
-            h_prev: torch.Tensor, shape (batch_size, 1, hidden_size). Note that in parallel mode, h_prev is always h[0].
+        Args:
+            x: torch.LongTensor, shape (batch_size, seq_len)    
+            h_prev: torch.Tensor, shape (batch_size, 1, hidden_dim). Note that in parallel mode, h_prev is always h[0].
+        
+        Returns:
+            embedding: torch.Tensor, shape (batch_size, seq_len, hidden_dim)
         """
-        # x = self.embedding(x)
+        x = self.embedding(x)
 
         # Keep passing prev_hidden to the next layer
         for conv, norm1, mingru, norm2, fcnn in self.layers: # Iterate over layers
@@ -89,7 +92,7 @@ class minGRULM(nn.Module):
             x = mingru(norm1(x), h_prev) + x # Skip connection over RMSNorm & MinGRU
             x = fcnn(norm2(x)) + x # Skip connection over RMSNorm & FCNN
         
-        # Compute logits
-        logits = self.out(self.norm(x))
+        # Compute embedding
+        embedding = self.out(self.norm(x))
 
-        return logits
+        return embedding

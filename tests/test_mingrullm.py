@@ -6,16 +6,17 @@ class TestMinGRULM:
         seq_len = 3
         hidden_dim = 4
         input_dim=2
-        x = torch.randn((batch_size, seq_len, input_dim))
+        num_tokens = 10
+        x = torch.randint(0, num_tokens, (batch_size, seq_len), dtype=torch.long)
         h_0 = torch.zeros((batch_size, 1, hidden_dim))
 
         mingru_lm = minGRULM(
-            num_tokens=10,
-            input_dim=4,
+            num_tokens=num_tokens,
+            input_dim=input_dim,
             hidden_dim=hidden_dim,
             num_layers=2,
         )
 
         out = mingru_lm(x, h_0)
 
-        assert out.shape == (batch_size, seq_len, 10)
+        assert out.shape == (batch_size, seq_len, hidden_dim)
