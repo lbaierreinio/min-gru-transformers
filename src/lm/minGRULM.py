@@ -53,10 +53,7 @@ class minGRULM(nn.Module):
         super().__init__()
         self.num_layers = num_layers
         self.num_tokens = num_tokens
-        """
-        nn.Embedding:
-        A simple lookup table that stores embeddings of a fixed dictionary and size.
-        """
+
         self.embedding = nn.Embedding(num_tokens, input_dim)
 
         self.layers = nn.ModuleList([])
