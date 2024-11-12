@@ -3,9 +3,8 @@ import torch.nn.functional as F
 
 def parallel_scan(a, b):
     """
-    Given batches of sequences a and b, where b[0] = h[0], 
-    compute and return h[1:t] for each pair of sequences in the batch,
-    where h[i] = a[i]*h[i-1] + b[i].
+    Given batches of sequences a and b, compute h[1:t], where h[i] = a[i]*h[i-1] + b[i],
+    and b[0] = h[0].
 
     Args:
         a: torch.Tensor, shape (batch_size, seq_len, hidden_size)
