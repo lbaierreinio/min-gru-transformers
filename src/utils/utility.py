@@ -1,7 +1,7 @@
 import torch
 import torch.nn.functional as F
 
-def parallel_scan_log(a, b):
+def parallel_scan(a, b):
     """
     Given batches of sequences a and b, where b[0] = h[0], 
     compute and return h[1:t] for each pair of sequences in the batch,
@@ -14,18 +14,13 @@ def parallel_scan_log(a, b):
     Returns:
         h: torch.Tensor, shape (batch_size, seq_len, hidden_size)
     """
-    # Take log of a & b
-    log_a = torch.log(a) 
-    log_b = torch.log(b)
     # Take cumulative sum across seq_len dimension
-    log_a_prime = torch.cumsum(log_a, dim=1)
+    a_prime = torch.cumsum(a, dim=1)
     # Pad each sequence with zero vector at beginning with dimension hidden_size
-    a_star = F.pad(log_a_prime, (0,0,1,0))
+    a_star = F.pad(a_prime, (0,0,1,0))
     # Obtain log(b) - a_star and take logcumsumexp across seq_len dimension
-    log_x0_plus_b_star = torch.logcumsumexp(log_b - a_star, dim=1)
+    x0_plus_b_star = torch.logcumsumexp(b - a_star, dim=1)
 
-    log_x = a_star + log_x0_plus_b_star
+    x = a_star + x0_plus_b_star
 
-    x = torch.exp(log_x)
-    # Omit first element of each sequence, so that we return h1:t
-    return x[:,1:]
+    return x[:, 1:]
