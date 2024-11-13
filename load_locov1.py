@@ -193,7 +193,6 @@ def gather_loco_training_examples(
     - loco_evaluation_set_count (int): Number of evaluation examples to gather from LoCoV1.
     - threshold_for_negatives (float): Relevance threshold to use for selecting strong negatives.
     - negatives_per_query (int): Number of negative examples per query.
-    - use_negatives_from_same_dataset_for_MNRL (bool): Flag to use negatives from the same dataset in multiple negatives ranking loss.
     - loss_choice (str): The loss function for which to generate examples (e.g., "contrastive_loss").
     - use_negatives_from_same_dataset_for_multidataset_finetuning (bool): If True, includes negatives from the same dataset for multi-dataset fine-tuning (default is False).
 
@@ -284,15 +283,11 @@ if __name__ == "__main__":
     loco_evaluation_set_count = 2000 # args.loco_evaluation_set_count
     threshold_for_negatives = -1 #-1 indicates negatives are randomly sampled, negative passages are randomly sampled from positive number upwards
     negatives_per_query = 32 # args.negatives_per_query # Number of negatives to add per query-positive passage pair
-    use_negatives_from_same_dataset_for_MNRL = False
-    use_memory_bank = True
     loss_choice = "multiple_negatives_ranking_loss" # args.loss_choice # Options: "orthogonal_projection_loss" #"online_contrastive_loss" #"triplet_loss" #"contrastive_loss" "multiple_negatives_ranking_loss"
     use_negatives_from_same_dataset_for_multidataset_finetuning = True
     long_context_training_examples, long_context_validation_examples = gather_loco_training_examples(
-       loco_example_count, loco_evaluation_set_count, threshold_for_negatives,
-        negatives_per_query, use_negatives_from_same_dataset_for_MNRL,
-        use_memory_bank, loss_choice,
-        use_negatives_from_same_dataset_for_multidataset_finetuning
+        loco_example_count, loco_evaluation_set_count, threshold_for_negatives, negatives_per_query,
+        loss_choice, use_negatives_from_same_dataset_for_multidataset_finetuning
     )
     from sentence_transformers import datasets
     train_dataloader = datasets.NoDuplicatesDataLoader(long_context_training_examples, batch_size=32)
