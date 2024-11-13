@@ -69,31 +69,30 @@ class MinGRULM(nn.Module):
         self.norm = N.RMSNorm(input_dim)
         self.out = nn.Linear(input_dim, hidden_dim)
 
-    def forward(self, x, h_prev):
+    def forward(self, x, prev_hiddens=None):
         """
         Forward pass of the model. In the sequential case, h_prev is
         all of the hidden states from the previous token across all layers.
-        In the parallel case, h_prev is the initial hidden state for all layers.
+        In the parallel case, h_prev should be none.
         Furthermore, in sequential case, seq_len should be 1.
         Args:
             x: torch.LongTensor, shape (batch_size, seq_len)    
-            h_prev: torch.Tensor, shape (batch_size, num_layers, hidden_dim).
+            h_prev: torch.Tensor, shape (num_layers, hidden_dim)
         
         Returns:
-            embedding: torch.Tensor, shape (batch_size, seq_len, hidden_dim)
+            out: torch.Tensor, shape (batch_size, seq_len, hidden_dim)
+            h_next: torch.Tensor, shape (batch_size, num_layers, hidden_dim)
         """
-        x = self.embedding(x) # b s_l -> b s_l d
+        x = self.embedding(x) # batch_size, sequence_length -> batch_size, sequence_length, hidden_dim
 
-        h_next = []
+        h_next = [] # Stores the output hidden states from each layer of the deep RNN (which should be used in the next token)
 
-        h_prev_transpose = h_prev.transpose(0, 1) # b s_l d -> s_l b d
-
-        prev_hiddens = iter(h_prev_transpose)
+        prev_hiddens_iter = iter(prev_hiddens if prev_hiddens is not None else []) # Iterate over num_layers dimension
 
         for conv, norm1, mingru, norm2, fcnn in self.layers: # Iterate over layers
-            next_prev_hidden = next(prev_hiddens).unsqueeze(1) # b 1 d
-            x = conv(x) + x # Convolution layer with skip connection
-            min_gru_out, h_l_next = mingru(norm1(x), next_prev_hidden) # MinGRU layer, using the previous hidden state from the appropriate layer.
+            next_prev_hidden = next(prev_hiddens_iter) if prev_hiddens is not None else None
+            # x = conv(x) + x # Convolution layer with skip connection
+            min_gru_out, h_l_next = mingru(norm1(x), next_prev_hidden, return_hidden=(prev_hiddens is not None)) # MinGRU layer, using the previous hidden state from the appropriate layer.
             x = min_gru_out + x # Skip over MinGRU
             x = fcnn(norm2(x)) + x # Skip connection over RMSNorm & FCNN
             h_next.append(h_l_next) # Add hidden state from this layer
@@ -101,4 +100,4 @@ class MinGRULM(nn.Module):
         # Compute embedding
         out = self.out(self.norm(x))
 
-        return out, h_next
+        return out, h_next # Return output token from output layer, and hidden states from each layer
