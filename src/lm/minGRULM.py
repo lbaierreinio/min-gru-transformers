@@ -83,16 +83,18 @@ class MinGRULM(nn.Module):
             out: torch.Tensor, shape (batch_size, seq_len, hidden_dim)
             h_next: torch.Tensor, shape (batch_size, num_layers, hidden_dim)
         """
+        is_sequential = prev_hiddens is not None
+        
         x = self.embedding(x) # batch_size, sequence_length -> batch_size, sequence_length, hidden_dim
 
         h_next = [] # Stores the output hidden states from each layer of the deep RNN (which should be used in the next token)
 
-        prev_hiddens_iter = iter(prev_hiddens if prev_hiddens is not None else []) # Iterate over num_layers dimension
+        prev_hiddens_iter = iter(prev_hiddens if is_sequential else []) # Iterate over num_layers dimension
 
         for conv, norm1, mingru, norm2, fcnn in self.layers: # Iterate over layers
-            next_prev_hidden = next(prev_hiddens_iter) if prev_hiddens is not None else None
+            next_prev_hidden = next(prev_hiddens_iter) if is_sequential else None
             x = conv(x) + x # Convolution layer with skip connection
-            min_gru_out, h_l_next = mingru(norm1(x), next_prev_hidden, return_hidden=(prev_hiddens is not None)) # MinGRU layer, using the previous hidden state from the appropriate layer.
+            min_gru_out, h_l_next = mingru(norm1(x), next_prev_hidden, return_hidden=is_sequential) # MinGRU layer, using the previous hidden state from the appropriate layer.
             x = min_gru_out + x # Skip over MinGRU
             x = fcnn(norm2(x)) + x # Skip connection over RMSNorm & FCNN
             h_next.append(h_l_next) # Add hidden state from this layer
