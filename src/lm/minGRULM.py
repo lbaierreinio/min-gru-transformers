@@ -71,17 +71,22 @@ class MinGRULM(nn.Module):
 
     def forward(self, x, prev_hiddens=None):
         """
-        Forward pass of the model. In the sequential case, h_prev is
-        all of the hidden states from the previous token across all layers.
-        In the parallel case, h_prev should be none.
-        Furthermore, in sequential case, seq_len should be 1.
+        Forward pass of the model. In the sequential case, prev_hiddens should 
+        be a list of hidden states from the previous token, for all layers. If 
+        this is the first token in the sequence, prev_hiddens can be a list of
+        zero tensors. Furthermore, in the sequential case, x should be only one
+        sequence in the tensor. In the parallel case, prev_hiddens should be None,
+        and x should be a tensor of sequences. The output is the embedding of all
+        the tokens in the sequence, and the hidden states from each layer. If
+        we are in parallel mode, we have no use for the hidden states.
+
         Args:
-            x: torch.LongTensor, shape (batch_size, seq_len)    
-            h_prev: torch.Tensor, shape (num_layers, hidden_dim)
+            x: torch.LongTensor
+            h_prev: torch.Tensor
         
         Returns:
-            out: torch.Tensor, shape (batch_size, seq_len, hidden_dim)
-            h_next: torch.Tensor, shape (batch_size, num_layers, hidden_dim)
+            out: torch.Tensor
+            h_next: torch.Tensor
         """
         is_sequential = prev_hiddens is not None
         
@@ -94,7 +99,8 @@ class MinGRULM(nn.Module):
         for conv, norm1, mingru, norm2, fcnn in self.layers: # Iterate over layers
             next_prev_hidden = next(prev_hiddens_iter) if is_sequential else None
             x = conv(x) + x # Convolution layer with skip connection
-            min_gru_out, h_l_next = mingru(norm1(x), next_prev_hidden, return_hidden=is_sequential) # MinGRU layer, using the previous hidden state from the appropriate layer.
+            # MinGRU layer, using the previous hidden state from the appropriate layer.
+            min_gru_out, h_l_next = mingru(norm1(x), next_prev_hidden, return_hidden=is_sequential)
             x = min_gru_out + x # Skip over MinGRU
             x = fcnn(norm2(x)) + x # Skip connection over RMSNorm & FCNN
             h_next.append(h_l_next) # Add hidden state from this layer

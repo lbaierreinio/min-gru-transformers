@@ -18,19 +18,20 @@ class MinGRU(nn.Module):
 
     def forward(self, x, h_prev=None, *, return_hidden=False):
         """
-        Compute the forward pass. Note that if seq_len of x is 1,
+        Compute the forward pass. Note that if h_prev is not none,
         then we assume the model is processing tokens sequentially.
-        Otherwise, if we pass multiple tokens per batch, we enter
-        parallel mode. In sequential mode, h_prev is the hidden state
-        from the previous token (or initial hidden state), while in 
-        parallel mode, h_prev is necessarily the initial hidden state.
+        Otherwise, we enter parallel mode. In sequential mode, 
+        the sequence length should be 1. In parallel mode, the
+        sequence length should be greater than 1. We return the 
+        output of the RNN and the hidden state if return_hidden is True.
         Args:
-            x: torch.Tensor, shape (batch_size, seq_len, input_size)
-            h_prev: torch.Tensor, shape (1, hidden_size)
+            x: torch.Tensor
+            h_prev: torch.Tensor
+            return_hidden: bool
         
         Returns:
-            out: torch.Tensor, shape (batch_size, seq_len, input_size)
-            h: torch.Tensor, shape (batch_size, (1/seq_len), input_size)
+            out: torch.Tensor
+            h: torch.Tensor
         """
         k = self.linear_z(x) 
         tilde_h = self.linear_h(x) # Candidate state

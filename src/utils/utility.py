@@ -3,14 +3,15 @@ import torch.nn.functional as F
 
 def parallel_scan_log(log_a, log_b):
     """
-    Given batches of sequences log(a) and log(b), compute h[0:t], where h[i] = a[i]*h[i-1] + b[i], h[0] = b[0].
+    Given sequences log(a) and log(b) of length t, compute h[0:t-1],
+    where h[0] = b[0], and h[i] = a[i]*h[i-1] + b[i] for i > 0.
 
     Args:
-        log_a: torch.Tensor, shape (batch_size, seq_len, hidden_size)
-        log_b: torch.Tensor, shape (batch_size, seq_len, hidden_size)
+        log_a: torch.Tensor
+        log_b: torch.Tensor
 
     Returns:
-        h: torch.Tensor, shape (batch_size, seq_len, hidden_size)
+        h: torch.Tensor
     """
     # Take cumulative sum across seq_len dimension
     log_a_star = torch.cumsum(log_a, dim=1)
