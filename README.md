@@ -1,7 +1,7 @@
 # Evaluating Min GRU vs. Transformers on Long-Context Retrieval
 
 ### Prerequisites
-- Currently, we are using conda with pip to manage our dependencies. See (https://docs.anaconda.com/miniconda/) for installation details. Note that we may end up using venv instead, as this is what is recommended on the U of T servers. Also, the use of Pip & Conda together is sometimes discouraged, which is another reason to switch to venv.
+- We are using conda to manage our dependencies. See (https://docs.anaconda.com/miniconda/) for installation details. Note that we may switch to venv later, since this is what is recommended on the U of T servers.
 
 ### Steps to Run
 1) Clone the repository onto your machine.

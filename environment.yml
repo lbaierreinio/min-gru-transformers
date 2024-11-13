@@ -1,20 +1,23 @@
 name: pytorch_env
 channels:
   - pytorch
+  - conda-forge
   - defaults
 dependencies:
   - blas=1.0=openblas
   - brotli-python=1.0.9=py312h313beb8_8
   - bzip2=1.0.8=h80987f9_6
   - ca-certificates=2024.9.24=hca03da5_0
-  - certifi=2024.8.30=py312hca03da5_0
+  - certifi=2024.8.30=pyhd8ed1ab_0
   - charset-normalizer=3.3.2=pyhd3eb1b0_0
-  - cpuonly=2.0=0
+  - colorama=0.4.6=pyhd8ed1ab_0
+  - exceptiongroup=1.2.2=pyhd8ed1ab_0
   - expat=2.6.3=h313beb8_0
   - filelock=3.13.1=py312hca03da5_0
   - freetype=2.12.1=h1192e45_0
   - giflib=5.2.2=h80987f9_0
   - idna=3.7=py312hca03da5_0
+  - iniconfig=2.0.0=pyhd8ed1ab_0
   - jinja2=3.1.4=py312hca03da5_1
   - jpeg=9e=h80987f9_3
   - lcms2=2.12=hba8e193_0
@@ -39,19 +42,23 @@ dependencies:
   - numpy=1.26.4=py312h7f4fdc5_0
   - numpy-base=1.26.4=py312he047099_0
   - openjpeg=2.5.2=h54b8e55_0
-  - openssl=3.0.15=h80987f9_0
+  - openssl=3.4.0=h39f12f2_0
+  - packaging=24.2=pyhd8ed1ab_0
   - pillow=10.4.0=py312h80987f9_0
   - pip=24.2=py312hca03da5_0
+  - pluggy=1.5.0=pyhd8ed1ab_0
   - pysocks=1.7.1=py312hca03da5_0
+  - pytest=8.3.3=pyhd8ed1ab_0
   - python=3.12.7=h99e199e_0
   - pytorch=2.5.1=py3.12_0
-  - pytorch-mutex=1.0=cpu
   - pyyaml=6.0.2=py312h80987f9_0
   - readline=8.2=h1a28f6b_0
   - requests=2.32.3=py312hca03da5_1
   - setuptools=75.1.0=py312hca03da5_0
   - sqlite=3.45.3=h80987f9_0
+  - sympy=1.13.2=py312hca03da5_0
   - tk=8.6.14=h6ba3021_0
+  - tomli=2.1.0=pyhff2d567_0
   - torchvision=0.20.1=py312_cpu
   - typing_extensions=4.11.0=py312hca03da5_0
   - tzdata=2024b=h04d1e81_0
@@ -61,11 +68,4 @@ dependencies:
   - yaml=0.2.5=h1a28f6b_0
   - zlib=1.2.13=h18a0788_1
   - zstd=1.5.6=hfb09047_0
-  - pip:
-      - fsspec==2024.10.0
-      - iniconfig==2.0.0
-      - packaging==24.2
-      - pluggy==1.5.0
-      - pytest==8.3.3
-      - sympy==1.13.1
 prefix: /opt/anaconda3/envs/pytorch_env
