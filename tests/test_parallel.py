@@ -1,4 +1,4 @@
-from src.utils.utility import parallel_scan_log
+from utils.utility import parallel_scan_log
 import torch
 
 class TestParallel:

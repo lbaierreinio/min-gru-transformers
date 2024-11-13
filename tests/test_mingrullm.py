@@ -1,4 +1,4 @@
-from src.lm.minGRULM import MinGRULM
+from lm.minGRULM import MinGRULM
 import torch
 
 class TestMinGRULM:

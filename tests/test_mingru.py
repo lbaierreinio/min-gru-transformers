@@ -1,4 +1,4 @@
-from src.minGRU.minGRU import MinGRU
+from minGRU.minGRU import MinGRU
 import torch
 class TestMinGRU:
     def test_min_gru_parallel(self):

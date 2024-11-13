@@ -1,7 +1,7 @@
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
-from src.utils.utility import parallel_scan_log
+from utils.utility import parallel_scan_log
 
 class MinGRU(nn.Module):
     def __init__(self, dim_x, dim_h): # Note: MinGRU paper suggests embedding dimension of 128
