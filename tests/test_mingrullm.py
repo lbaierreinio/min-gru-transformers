@@ -8,7 +8,7 @@ class TestMinGRULM:
         hidden_dim = 4
         num_layers = 2
         x_t = torch.randint(0, num_tokens, (1,), dtype=torch.long)
-        h_prev = torch.randn((1, hidden_dim))
+        h_prev = torch.randn((num_layers, 1, hidden_dim))
 
         mingru_lm = MinGRULM(
             num_tokens=num_tokens,
@@ -20,7 +20,9 @@ class TestMinGRULM:
         out, h_next = mingru_lm(x_t, h_prev)
 
         assert out.shape == (1, hidden_dim) # Embedding of x_t
-        assert h_next.shape == (num_layers, hidden_dim) # Hidden state of x_t
+        assert len(h_next) == num_layers # Hidden state of x_t
+        for h in h_next:
+            assert h.shape == (1, hidden_dim)
 
 
     def test_min_gru_parallel(self):

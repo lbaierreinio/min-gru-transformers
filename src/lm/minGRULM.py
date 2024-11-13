@@ -26,9 +26,9 @@ class CausalDepthWiseConv1D(nn.Module):
     
     # TODO: Figure out why we need to transpose
     def forward(self, x):
-        x = x.transpose(1, 2) # b n d -> b d n
+        x = x.transpose(-2, -1) # b n d -> b d n
         x = self.net(x)
-        return x.transpose(1, 2) # b d n -> b n d
+        return x.transpose(-2, -1) # b d n -> b n d
 
 class MinGRULM(nn.Module):
     """
@@ -91,7 +91,7 @@ class MinGRULM(nn.Module):
 
         for conv, norm1, mingru, norm2, fcnn in self.layers: # Iterate over layers
             next_prev_hidden = next(prev_hiddens_iter) if prev_hiddens is not None else None
-            # x = conv(x) + x # Convolution layer with skip connection
+            x = conv(x) + x # Convolution layer with skip connection
             min_gru_out, h_l_next = mingru(norm1(x), next_prev_hidden, return_hidden=(prev_hiddens is not None)) # MinGRU layer, using the previous hidden state from the appropriate layer.
             x = min_gru_out + x # Skip over MinGRU
             x = fcnn(norm2(x)) + x # Skip connection over RMSNorm & FCNN
