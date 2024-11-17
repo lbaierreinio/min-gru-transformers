@@ -89,23 +89,32 @@ class MinGRULM(nn.Module):
             h_next: torch.Tensor
         """
         is_sequential = prev_hiddens is not None
-        
-        x = self.embedding(x) # batch_size, sequence_length -> batch_size, sequence_length, hidden_dim
 
-        h_next = [] # Stores the output hidden states from each layer of the deep RNN (which should be used in the next token)
+        x = self.embedding(x)  # Embedding layer
 
-        prev_hiddens_iter = iter(prev_hiddens if is_sequential else []) # Iterate over num_layers dimension
+        if is_sequential:
+            h_next = []  # To store next hidden states
+            prev_hiddens_iter = iter(prev_hiddens)
+        else:
+            h_next = None  # No hidden states in parallel mode
 
-        for conv, norm1, mingru, norm2, fcnn in self.layers: # Iterate over layers
-            next_prev_hidden = next(prev_hiddens_iter) if is_sequential else None
-            x = conv(x) + x # Convolution layer with skip connection
-            # MinGRU layer, using the previous hidden state from the appropriate layer.
-            min_gru_out, h_l_next = mingru(norm1(x), next_prev_hidden, return_hidden=is_sequential)
-            x = min_gru_out + x # Skip over MinGRU
-            x = fcnn(norm2(x)) + x # Skip connection over RMSNorm & FCNN
-            h_next.append(h_l_next) # Add hidden state from this layer
-        
-        # Compute embedding
+        for layer_idx, (conv, norm1, mingru, norm2, fcnn) in enumerate(self.layers):
+            if is_sequential:
+                next_prev_hidden = next(prev_hiddens_iter)
+            else:
+                next_prev_hidden = None
+
+            x = conv(x) + x  # Convolution with skip connection
+
+            # MinGRU layer
+            if is_sequential:
+                min_gru_out, h_l_next = mingru(norm1(x), next_prev_hidden, return_hidden=True)
+                h_next.append(h_l_next)
+            else:
+                min_gru_out = mingru(norm1(x), None, return_hidden=False)
+
+            x = min_gru_out + x  # Skip connection over MinGRU
+            x = fcnn(norm2(x)) + x  # Skip connection over FCNN
+
         out = self.out(self.norm(x))
-
-        return out, h_next # Return output token from output layer, and hidden states from each layer
+        return out, h_next
