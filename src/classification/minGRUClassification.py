@@ -4,7 +4,7 @@ import torch.nn.modules.normalization as N
 
 from minGRU.minGRU import MinGRU
 
-class minGRUClassification(nn.Module):
+class MinGRUClassification(nn.Module):
   '''
   A simple 1-layer RNN using minGRU with a classifier head.
   As an example, for the SMS classification task, we used an 
