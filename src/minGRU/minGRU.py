@@ -2,14 +2,14 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 
-class MinGRU(nn.Module):
+class MinGRU2516(nn.Module):
     def __init__(self, dim_x, dim_h): # Note: MinGRU paper suggests embedding dimension of 128
         super().__init__()
         self.linear_z = nn.Linear(dim_x, dim_h) # Linear layer for producing z from x
         self.linear_h = nn.Linear(dim_x, dim_h) # Linear layer for producing candidate state h_tilde from x
         self.linear_o = nn.Linear(dim_h, dim_x) # Linear layer for producing output from hidden state
     
-    def parallel_scan_log(log_a, log_b):
+    def parallel_scan_log(self, log_a, log_b):
         """
         Given sequences log(a) and log(b) of length t, compute h[0:t-1],
         where h[0] = b[0], and h[i] = a[i]*h[i-1] + b[i] for i > 0.
@@ -63,7 +63,7 @@ class MinGRU(nn.Module):
             log_z = -F.softplus(-k) # Log (z) 
             log_one_minus_z = -F.softplus(k) # Log (1 - z)
             log_tilde_h = self.log_g(tilde_h) # Log candidate state
-            h = parallel_scan_log(log_one_minus_z, log_z + log_tilde_h) # Hidden states
+            h = self.parallel_scan_log(log_one_minus_z, log_z + log_tilde_h) # Hidden states
                  
         # Transform hidden state to output
         out = self.linear_o(h)
