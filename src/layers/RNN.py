@@ -1,5 +1,5 @@
 import torch.nn as nn
-from layers.minGRU import MinGRU
+from layers.MinGRU import MinGRU
 from layers.BiMinGRU import BiMinGRU
 
 class RNN(nn.Module):

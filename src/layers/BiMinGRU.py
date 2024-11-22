@@ -1,6 +1,6 @@
 import torch
 from torch import nn
-from layers.minGRU import MinGRU
+from layers.MinGRU import MinGRU
 
 class BiMinGRU(nn.Module):
   def __init__(self, dim_x, dim_h):
