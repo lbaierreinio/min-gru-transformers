@@ -2,7 +2,7 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 
-class MinGRU2516(nn.Module):
+class MinGRU(nn.Module):
     def __init__(self, dim_x, dim_h): # Note: MinGRU paper suggests embedding dimension of 128
         super().__init__()
         self.linear_z = nn.Linear(dim_x, dim_h) # Linear layer for producing z from x
