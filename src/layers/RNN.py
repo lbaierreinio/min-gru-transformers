@@ -1,4 +1,6 @@
 import torch.nn as nn
+from layers.minGRU import MinGRU
+from layers.BiMinGRU import BiMinGRU
 
 class RNN(nn.Module):
   def __init__(self, *, embedding_dim, inner_dim, num_layers=1, bidirectional=False):
