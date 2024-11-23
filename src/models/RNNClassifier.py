@@ -10,10 +10,10 @@ class RNNClassifier(nn.Module):
     self.embedding = nn.Embedding(vocab_size, embedding_dim)
 
     # RRN layer (potentially deep and/or bidirectional)
-    self.rnn = RNN(embedding_dim=embedding_dim, inner_dim=self.inner_dim, num_layers=num_layers, bidirectional=bidirectional) 
+    self.rnn = RNN(embedding_dim=embedding_dim, inner_dim=self.inner_dim, num_layers=num_layers, bidirectional=bidirectional)
 
     # Classifier head
-    self.linear = nn.Linear(embedding_dim, num_logits) 
+    self.linear = nn.Linear(self.inner_dim, num_logits)
 
   def forward(self, x):
     x = self.embedding(x)

@@ -3,12 +3,12 @@ from torch import nn
 from layers.MinGRU import MinGRU
 
 class BiMinGRU(nn.Module):
-  def __init__(self, dim_x, dim_h):
+  def __init__(self, dim_h):
     super().__init__()
-    self.forward_rnn = MinGRU(dim_x, dim_h)
-    self.backward_rnn = MinGRU(dim_x, dim_h)
-    self.linear = nn.Linear(2 * dim_x, dim_x)
-  
+    self.forward_rnn = MinGRU(dim_h)
+    self.backward_rnn = MinGRU(dim_h)
+    self.linear = nn.Linear(2 * dim_h, dim_h)
+
   def forward(self, x):
     x_reversed = x.flip(dims=[1])
     out_forward = self.forward_rnn(x)
