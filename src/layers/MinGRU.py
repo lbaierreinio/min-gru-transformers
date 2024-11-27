@@ -30,6 +30,12 @@ class MinGRU(nn.Module):
 
         return log_x.exp()
 
+    def g(self, x):
+        """
+        Appendix B.3: Were RNNs All We Needed?
+        """
+        return torch.where(x >= 0, x+0.5, torch.sigmoid(x))
+
     def log_g(self, x):
         """
         Appendix B.3: Were RNNs All We Needed?
@@ -58,6 +64,7 @@ class MinGRU(nn.Module):
 
         if h_prev is not None: # Indicates sequential mode
             z = torch.sigmoid(k)
+            tilde_h = self.g(tilde_h)
             h = (1 - z) * h_prev + z * tilde_h # h[t]
         else: # Parallel Mode (TODO: Determine if we would ever be interested in previous hidden state here)
             log_z = -F.softplus(-k) # Log (z)
