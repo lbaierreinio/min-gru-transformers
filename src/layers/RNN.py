@@ -11,7 +11,7 @@ class RNN(nn.Module):
     self.embedding_rnn = nn.GRU(embedding_dim, hidden_dim, num_layers=num_layers, bidirectional=bidirectional)
 
     self.layers = nn.ModuleList([
-        (BiMinGRU(embedding_dim, hidden_dim) if bidirectional else MinGRU(embedding_dim, hidden_dim)) for _ in range(num_layers-1)
+        (BiMinGRU(hidden_dim, hidden_dim) if bidirectional else MinGRU(hidden_dim, hidden_dim)) for _ in range(num_layers-1)
     ])
 
   def forward(self, x):
