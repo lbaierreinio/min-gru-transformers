@@ -3,11 +3,10 @@ import torch.nn as nn
 import torch.nn.functional as F
 
 class MinGRU(nn.Module):
-    def __init__(self, dim_x, dim_h):
+    def __init__(self, dim_in, dim_hidden):
         super().__init__()
-        self.linear_z = nn.Linear(dim_x, dim_h) # Linear layer for producing z from x
-        self.linear_h = nn.Linear(dim_x, dim_h) # Linear layer for producing candidate state h_tilde from x
-        self.linear_o = nn.Linear(dim_h, dim_x) # Linear layer for producing output from hidden state
+        self.linear_z = nn.Linear(dim_in, dim_hidden) # Linear layer for producing z from x
+        self.linear_h = nn.Linear(dim_in, dim_hidden) # Linear layer for producing candidate state h_tilde from x
 
     def parallel_scan_log(self, log_a, log_b):
         """
@@ -42,7 +41,7 @@ class MinGRU(nn.Module):
         """
         return torch.where(x >= 0, torch.log(F.relu(x)+0.5), -F.softplus(-x))
 
-    def forward(self, x, h_prev=None, *, return_hidden=False):
+    def forward(self, x, h_prev=None, *):
         """
         Compute the forward pass. Note that if h_prev is not none,
         then we assume the model is processing tokens sequentially.
@@ -72,9 +71,4 @@ class MinGRU(nn.Module):
             log_tilde_h = self.log_g(tilde_h) # Log candidate state
             h = self.parallel_scan_log(log_one_minus_z, log_z + log_tilde_h) # Hidden states
 
-        # Transform hidden state to output
-        out = self.linear_o(h)
-
-        if return_hidden:
-            return out, h
-        return out
+        return h
