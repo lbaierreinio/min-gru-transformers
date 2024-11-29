@@ -10,7 +10,6 @@ class LongTransformerClassifier(nn.Module):
         self.fc_out = nn.Linear(num_hiddens, num_classes)
 
     def forward(self, x):
-
         x = self.long_transformer_encoder(x)
         x = self.dropout(x)
         x = self.fc_out(x)
