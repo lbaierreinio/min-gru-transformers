@@ -1,5 +1,5 @@
 from torch import nn
-from layers.RNN import RNN
+from layers.rnn.RNN import RNN
 
 class RNNClassifier(nn.Module):
   def __init__(self, *, vocab_size, embedding_dim, expansion_factor, num_layers=1, bidirectional=False, num_logits):

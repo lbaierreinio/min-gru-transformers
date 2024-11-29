@@ -1,4 +1,4 @@
-from layers.MinGRU import MinGRU
+from layers.rnn.MinGRU import MinGRU
 import torch
 class TestMinGRU:
     def test_min_gru_parallel(self):

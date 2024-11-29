@@ -1,4 +1,4 @@
-from layers.minGRULM import MinGRULM
+from models.minGRULM import MinGRULM
 import torch
 
 class TestMinGRULM:
