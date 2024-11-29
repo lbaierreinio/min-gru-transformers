@@ -4,7 +4,7 @@ import argparse
 from transformers import AutoTokenizer
 from datasets.utility import generate_dataset8
 from datasets.SyntheticDataset import SyntheticDataset
-from models.MinGRUClassifier import MinGRUClassifier
+from models.LongTransformerClassifier import LongTransformerClassifier
 from train.utility import train
 from datasets.utility import get_split
 from utils.utility import get_new_row, create_file, append_line
@@ -19,6 +19,14 @@ def main():
     out_path = args.out_path
     
     sequence_length = 1024
+    num_examples = 2000
+    batch_size = 256
+    num_labels = 4
+    replace = True
+    num_subsequences = 4
+    token_distance = 3
+    start = 1020
+    end = 1024
     model_name = 'bert-base-uncased'
     tokenizer = AutoTokenizer.from_pretrained(model_name, model_max_length=sequence_length)
 
@@ -31,15 +39,6 @@ def main():
     if os.path.exists(dataset_path):
         dataset = torch.load(dataset_path)
     else:
-        num_examples = 2000
-        batch_size = 256
-        num_labels = 4
-        replace = True
-        num_subsequences = 4
-        token_distance = 3
-        start = 1020
-        end = 1024
-
         grammars = [
             {
                 'S': [(0.95, 'A'), (0.05, 'B')],
@@ -80,23 +79,28 @@ def main():
     vocab_size = tokenizer.vocab_size
     learning_rate = 1e-4
     num_epochs = 10000
-    embedding_dim = 256
-    expansion_factor = 1.5
     num_layers = 4
-    bidirectional = True
 
     loss_fn = torch.nn.CrossEntropyLoss()
 
-    #model = MinGRUClassifier(vocab_size=vocab_size, embedding_dim=embedding_dim, expansion_factor=expansion_factor, num_layers=num_layers, bidirectional=True, num_logits=4).cuda()
-    # Transformer
+    model = LongTransformerClassifier(
+        vocab_size=vocab_size,
+        num_heads=8,
+        num_layers=num_layers,
+        num_classes=4,
+        num_hiddens=128,
+        ffn_num_hiddens=2048
+    ).cuda()
     
 
     num_parameters = sum(p.numel() for p in model.parameters())
 
-    total_loss, accuracy, steps, total_epochs, avg_time_per_step = train(model, train_dataloader, val_dataloader, num_epochs, loss_fn, learning_rate, early_stopping=True)
+    total_loss, validation_accuracy, steps, total_epochs, avg_time_per_step = train(model, train_dataloader, val_dataloader, num_epochs, loss_fn, learning_rate, early_stopping=True)
+
+    next_row = get_new_row()
 
     # Create the new row and update the fields for MinGRU
-    next_row['Model'] = 'MinGRUClassifier'
+    next_row['Model'] = 'Transformer'
     next_row['Layers'] = num_layers
     next_row['Parameters'] = num_parameters
     next_row['Sequence Length'] = sequence_length
