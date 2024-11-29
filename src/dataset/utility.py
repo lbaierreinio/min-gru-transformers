@@ -12,10 +12,10 @@ def generate_grammar(rules, seq_len):
   state = 'S'
 
   while len(sequence) < seq_len:
-    sequence.append(state)
     current_rules = rules[state]
     next_state_idx = np.random.choice(np.arange(len(current_rules)), p=list(map(lambda x: x[0], current_rules)))
     state = current_rules[next_state_idx][1]
+    sequence.append(state)
 
   return sequence
 
