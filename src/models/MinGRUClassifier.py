@@ -1,7 +1,7 @@
 from torch import nn
 from layers.rnn.RNN import RNN
 
-class RNNClassifier(nn.Module):
+class MinGRUClassifier(nn.Module):
   def __init__(self, *, vocab_size, embedding_dim, expansion_factor, num_layers=1, bidirectional=False, num_logits):
     super().__init__()
     self.hidden_dim = int(embedding_dim * expansion_factor)
