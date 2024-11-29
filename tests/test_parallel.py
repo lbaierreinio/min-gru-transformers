@@ -3,7 +3,6 @@ import torch
 
 class TestParallel:
     def test_parallel(self):
-        print('hey')
         batch_size, seq_len, hidden_size = 1, 2, 3 # TODO: Test case where batch_size > 1
         a = torch.abs(torch.randn((batch_size, seq_len, hidden_size)))
         b = torch.abs(torch.randn((batch_size, seq_len, hidden_size)))
