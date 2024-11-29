@@ -2,8 +2,8 @@ import os
 import torch
 import argparse
 from transformers import AutoTokenizer
-from dataset.utility import generate_dataset8, train
-from dataset.SyntheticDataset import SyntheticDataset
+from datasets.utility import generate_dataset8
+from datasets.SyntheticDataset import SyntheticDataset
 
 def main():
 
@@ -19,7 +19,7 @@ def main():
         dataset = torch.load(path)
 
     else:
-        num_examples = 2000
+        num_examples = 5
         sequence_length = 1024
         batch_size = 256
         num_labels = 4
@@ -63,7 +63,8 @@ def main():
             replace=replace
         )
 
-    dataset = SyntheticDataset(examples, labels, tokenizer, sequence_length)
+        dataset = SyntheticDataset(examples, labels, tokenizer, sequence_length)
+        torch.save(dataset, path)
 
 
 if __name__ == '__main__':
