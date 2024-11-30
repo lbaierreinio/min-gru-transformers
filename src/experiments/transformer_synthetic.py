@@ -68,7 +68,7 @@ def main():
             num_labels=num_labels, 
             num_subsequences=num_subsequences,
             # token_distance=token_distance,
-            parity=True, 
+            even=True, 
             start=start, 
             end=end, 
             replace=replace
@@ -83,7 +83,7 @@ def main():
             num_labels=num_labels, 
             num_subsequences=num_subsequences,
             # token_distance=token_distance,
-            parity=False, # No parity 
+            even=False, # No parity 
             start=start, 
             end=end, 
             orders=orders,
