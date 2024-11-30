@@ -1,6 +1,5 @@
 import math
 import torch.nn as nn
-from layers.transformer.PositionalEncoding import PositionalEncoding
 from layers.transformer.TransformerMinGRUEncoderBlock import TransformerMinGRUEncoderBlock
 
 class LongTransformerEncoder(nn.Module):
@@ -11,16 +10,14 @@ class LongTransformerEncoder(nn.Module):
 
     # Embedding & Encoding
     self.embedding = nn.Embedding(vocab_size, num_hiddens)
-    self.pos_encoder = PositionalEncoding(num_hiddens, max_len=max_len)
 
     # Encoder Layers
     self.layers = nn.ModuleList([
-        TransformerMinGRUEncoderBlock(num_heads, num_hiddens, ffn_num_hiddens, chunk_size, dropout, bias) for _ in range(num_layers)
+        TransformerMinGRUEncoderBlock(num_heads, num_hiddens, ffn_num_hiddens, chunk_size, dropout, max_len, bias) for _ in range(num_layers)
     ])
 
   def forward(self, x):
     x = self.embedding(x) * math.sqrt(self.num_hiddens)
-    x = self.pos_encoder(x)
 
     for layer in self.layers:
       x = layer(x)

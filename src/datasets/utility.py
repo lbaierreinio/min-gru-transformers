@@ -25,14 +25,14 @@ the model is asked to do two things: (a) summarize the order in which the subseq
 appear and (b) determine if the two indicator tokens are the same.
 
 '''
-def generate_dataset8(*, seq_len, num_examples, grammars, num_labels, replace, num_subsequences, token_distance, start, end, seed=42):
+def generate_dataset8(*, seq_len, num_examples, grammars, num_labels, replace, num_subsequences, token_distance=None, start=None, end=None, seed=42):
 
   assert seq_len % num_subsequences == 0, "Sequence length must be divisible by number of subsequences"
-  assert start < end, "Start must be less than end"
-  assert start >= 0, "Start must be greater than or equal to 0"
-  assert end <= seq_len, "End must be less than or equal to sequence length"
+  assert (start is None or end is None) or start < end, "Start must be less than end"
+  assert start is None or start >= 0, "Start must be greater than or equal to 0"
+  assert end is None or end <= seq_len, "End must be less than or equal to sequence length"
   assert num_labels >= 2, "Number of labels must be greater than or equal to 2"
-  assert token_distance > 2, "Token distance must be greater than 2"
+  assert token_distance is None or token_distance > 2, "Token distance must be greater than 2"
   assert len(grammars) >= 1, "Must specify at least one grammar"
 
   # Generate labels
@@ -55,8 +55,8 @@ def generate_dataset8(*, seq_len, num_examples, grammars, num_labels, replace, n
     for i in range(0, num_subsequences):
       sequence += generate_grammar(grammars[order[i]], subseq_len)
 
-    idx_one = np.random.randint(start, end)
-    idx_two = idx_one
+    idx_one = 0 if start is None else np.random.randint(start, end)
+    idx_two = seq_len-1 if start is None else idx_one
     while idx_one == idx_two:
       idx_two = np.random.randint(max(start, idx_one - token_distance), min(end, idx_one + token_distance))
 

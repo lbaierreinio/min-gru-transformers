@@ -18,15 +18,15 @@ def main():
     dataset_path = args.dataset_path
     out_path = args.out_path
     
-    sequence_length = 1024
-    num_examples = 2000
+    sequence_length = 4096
+    num_examples = 400
     batch_size = 256
     num_labels = 4
     replace = True
     num_subsequences = 4
-    token_distance = 3
-    start = 1020
-    end = 1024
+    token_distance = 100
+    start = 100
+    end = 400
     model_name = 'bert-base-uncased'
     tokenizer = AutoTokenizer.from_pretrained(model_name, model_max_length=sequence_length)
 
@@ -63,9 +63,9 @@ def main():
             grammars=grammars, 
             num_labels=num_labels, 
             num_subsequences=num_subsequences, 
-            token_distance=token_distance, 
-            start=start, 
-            end=end, 
+            #token_distance=token_distance, 
+            #start=start, 
+            #end=end, 
             replace=replace
         )
 
@@ -85,11 +85,13 @@ def main():
 
     model = LongTransformerClassifier(
         vocab_size=vocab_size,
-        num_heads=4,
+        num_heads=2,
         num_layers=num_layers,
         num_classes=4,
         num_hiddens=128,
-        ffn_num_hiddens=512
+        chunk_size=128,
+        ffn_num_hiddens=512,
+        max_len=sequence_length
     ).cuda()
     
 
