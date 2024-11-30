@@ -76,8 +76,8 @@ def main():
             expansion_factor=mingru_config.expansion_factor,
             num_layers=mingru_config.num_layers,
             bidirectional=mingru_config.bidirectional,
-            num_classes=mingru_config.labels
-        ),
+            num_classes=dataset_config.num_labels
+        ).cuda(),
         1: LongTransformerClassifier(
             vocab_size=vocab_size,
             num_heads=transformer_config.num_heads,
@@ -87,18 +87,19 @@ def main():
             ffn_num_hiddens=transformer_config.ffn_num_hiddens,
             chunk_size=transformer_config.chunk_size,
             max_len=dataset_config.sequence_length,
-        )
+        ).cuda()
     }
 
     config = config_dict[model]
-    model = model_dict[model].cuda()
-    num_parameters = sum(p.numel() for p in model.parameters())
+    selected_model = model_dict[model]
+    num_parameters = sum(p.numel() for p in selected_model.parameters())
 
     # (5) Train Model
     _, _, steps, total_epochs, avg_time_per_step = train(
-        model, train_dataloader1, val_dataloader1, train_config.num_epochs, loss_fn, train_config.learning_rate, early_stopping=train_config.early_stopping)
+        selected_model, train_dataloader1, val_dataloader1, train_config.num_epochs, loss_fn, train_config.learning_rate, early_stopping=train_config.early_stopping)
 
-    validation_accuracy, total_loss = evaluate(model, val_dataloader2, loss_fn)
+    validation_accuracy, total_loss = evaluate(
+        selected_model, val_dataloader2, loss_fn)
 
     # (6) Store Results
     next_row = get_new_row()
