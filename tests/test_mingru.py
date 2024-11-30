@@ -1,5 +1,7 @@
 from layers.rnn.MinGRU import MinGRU
 import torch
+
+
 class TestMinGRU:
     def test_min_gru_parallel(self):
         batch_size, seq_len, input_size, hidden_size = 1, 2, 2, 3
@@ -9,7 +11,7 @@ class TestMinGRU:
         o = min_gru(x)
 
         assert o.shape == (batch_size, seq_len, input_size)
-    
+
     def test_min_gru_sequential(self):
         input_size, hidden_size = 2, 3
         min_gru = MinGRU(input_size, hidden_size)

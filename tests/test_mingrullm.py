@@ -1,6 +1,7 @@
 from models.minGRULM import MinGRULM
 import torch
 
+
 class TestMinGRULM:
     def test_min_gru_sequential(self):
         num_tokens = 10
@@ -19,11 +20,10 @@ class TestMinGRULM:
 
         out, h_next = mingru_lm(x_t, h_prev)
 
-        assert out.shape == (1, hidden_dim) # Embedding of x_t
-        assert len(h_next) == num_layers # Hidden state of x_t
+        assert out.shape == (1, hidden_dim)  # Embedding of x_t
+        assert len(h_next) == num_layers  # Hidden state of x_t
         for h in h_next:
             assert h.shape == (1, hidden_dim)
-
 
     def test_min_gru_parallel(self):
         batch_size = 2
@@ -33,7 +33,8 @@ class TestMinGRULM:
         num_tokens = 10
         num_layers = 2
 
-        x = torch.randint(0, num_tokens, (batch_size, seq_len), dtype=torch.long)
+        x = torch.randint(0, num_tokens, (batch_size,
+                          seq_len), dtype=torch.long)
 
         mingru_lm = MinGRULM(
             num_tokens=num_tokens,

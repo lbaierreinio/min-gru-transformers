@@ -2,15 +2,13 @@ from dataclasses import dataclass
 
 
 @dataclass
-class MinGRUConfig:
+class TransformerConfig:
     """
-    Configuration for minGRU experiments.
+    Configuration for Transformer model.
     """
-    sequence_length: int = 256
-    num_examples: int = 2000
-    num_labels: int = 4
-    num_subsequences: int = 4
-    start: int = 0
-    end: int = 256
-    tokenizer: str = 'bert-base-uncased'
-    even: bool = False
+    name: str = 'transformer'
+    num_heads: int = 2
+    num_layers: int = 2
+    num_hiddens: int = 32
+    ffn_num_hiddens: int = 128
+    chunk_size: int = 128
