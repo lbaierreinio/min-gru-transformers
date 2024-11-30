@@ -25,7 +25,7 @@ the model is asked to do two things: (a) summarize the order in which the subseq
 appear and (b) determine if the two indicator tokens are the same.
 
 '''
-def generate_dataset8(*, seq_len, num_examples, grammars, num_labels, replace, num_subsequences, token_distance=None, start=None, end=None, seed=42):
+def generate_dataset8(*, seq_len, num_examples, grammars, num_labels, replace, num_subsequences, parity=False, token_distance=None, start=None, end=None, orders=None, seed=42):
 
   assert seq_len % num_subsequences == 0, "Sequence length must be divisible by number of subsequences"
   assert (start is None or end is None) or start < end, "Start must be less than end"
@@ -35,19 +35,23 @@ def generate_dataset8(*, seq_len, num_examples, grammars, num_labels, replace, n
   assert token_distance is None or token_distance > 2, "Token distance must be greater than 2"
   assert len(grammars) >= 1, "Must specify at least one grammar"
 
+  start = start // 2
+  end = end // 2
   # Generate labels
   indicators = ['X', 'Y']
-  orders = []
   halved_num_labels = int(num_labels // 2)
-  for _ in range(0,halved_num_labels):
-    order = list(np.random.choice(range(len(grammars)), num_subsequences, replace=replace))
-    while order in orders:
+  if orders is None:
+    orders = []
+    for _ in range(0,halved_num_labels):
       order = list(np.random.choice(range(len(grammars)), num_subsequences, replace=replace))
-    orders.append(order)
+      while order in orders:
+        order = list(np.random.choice(range(len(grammars)), num_subsequences, replace=replace))
+      orders.append(order)
 
   examples = np.zeros((num_examples, seq_len), dtype=object)
   labels = np.zeros(num_examples, dtype=int)
   for _ in range(0, num_examples):
+    print('hey')
     label = np.random.choice(range(halved_num_labels))
     order = orders[label]
     subseq_len = int(seq_len / num_subsequences)
@@ -55,10 +59,20 @@ def generate_dataset8(*, seq_len, num_examples, grammars, num_labels, replace, n
     for i in range(0, num_subsequences):
       sequence += generate_grammar(grammars[order[i]], subseq_len)
 
-    idx_one = 0 if start is None else np.random.randint(start, end)
-    idx_two = seq_len-1 if start is None else idx_one
+    idx_one = np.random.randint(start, end)
+    idx_two = np.random.randint(start, end)
     while idx_one == idx_two:
-      idx_two = np.random.randint(max(start, idx_one - token_distance), min(end, idx_one + token_distance))
+      idx_two = np.random.randint(start, end)
+    
+    idx_one = idx_one * 2
+    idx_two = idx_two * 2
+
+    if not parity:
+      idx_one = max(0, idx_one - 1)
+      idx_two = max(0, idx_two - 1)
+
+      if idx_one == idx_two:
+        idx_two = idx_two + 1
 
     sequence[idx_one] = np.random.choice(indicators)
     sequence[idx_two] = np.random.choice(indicators)
@@ -73,7 +87,7 @@ def generate_dataset8(*, seq_len, num_examples, grammars, num_labels, replace, n
 
     labels[_] = label
 
-  return examples, labels
+  return examples, labels, orders
 
 def get_split(dataset, batch_size = 32, validation_split=0.1, test_split=0.1, seed=42):
   val_size = int(validation_split * len(dataset))

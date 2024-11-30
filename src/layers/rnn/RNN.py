@@ -8,7 +8,7 @@ class RNN(nn.Module):
 
     assert num_layers > 0, "Number of layers must be greater than 0"
 
-    self.embedding_rnn = nn.GRU(embedding_dim, hidden_dim, num_layers=num_layers, bidirectional=bidirectional)
+    self.embedding_rnn = (BiMinGRU(embedding_dim, hidden_dim) if bidirectional else MinGRU(embedding_dim, hidden_dim))
 
     self.layers = nn.ModuleList([
         (BiMinGRU(hidden_dim, hidden_dim) if bidirectional else MinGRU(hidden_dim, hidden_dim)) for _ in range(num_layers-1)

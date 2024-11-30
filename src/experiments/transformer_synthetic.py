@@ -5,7 +5,8 @@ from transformers import AutoTokenizer
 from datasets.utility import generate_dataset8
 from datasets.SyntheticDataset import SyntheticDataset
 from models.LongTransformerClassifier import LongTransformerClassifier
-from train.utility import train
+from models.MinGRUClassifier import MinGRUClassifier
+from train.utility import train, evaluate
 from datasets.utility import get_split
 from utils.utility import get_new_row, create_file, append_line
 
@@ -18,17 +19,20 @@ def main():
     dataset_path = args.dataset_path
     out_path = args.out_path
     
-    sequence_length = 4096
-    num_examples = 400
+    sequence_length = 100
+    num_examples = 2048
     batch_size = 256
     num_labels = 4
     replace = True
     num_subsequences = 4
-    token_distance = 100
-    start = 100
-    end = 400
+    # token_distance = 10
+    start = 0
+    end = 100
     model_name = 'bert-base-uncased'
     tokenizer = AutoTokenizer.from_pretrained(model_name, model_max_length=sequence_length)
+
+    dataset1 = None
+    dataset2 = None
 
     if dataset_path is None or dataset_path is None:
         raise ValueError("dataset_path and out_path must be specified")
@@ -57,23 +61,42 @@ def main():
             }
         ]
 
-        examples, labels = generate_dataset8(
+        examples, labels, orders = generate_dataset8(
             seq_len=sequence_length, 
             num_examples=num_examples, 
             grammars=grammars, 
             num_labels=num_labels, 
-            num_subsequences=num_subsequences, 
-            #token_distance=token_distance, 
-            #start=start, 
-            #end=end, 
+            num_subsequences=num_subsequences,
+            # token_distance=token_distance,
+            parity=True, 
+            start=start, 
+            end=end, 
             replace=replace
         )
+        print('ey')
+        dataset1 = SyntheticDataset(examples, labels, tokenizer, sequence_length)
 
-        dataset = SyntheticDataset(examples, labels, tokenizer, sequence_length)
-        torch.save(dataset, dataset_path)
+        examples, labels, _ = generate_dataset8(
+            seq_len=sequence_length, 
+            num_examples=num_examples, 
+            grammars=grammars, 
+            num_labels=num_labels, 
+            num_subsequences=num_subsequences,
+            # token_distance=token_distance,
+            parity=False, # No parity 
+            start=start, 
+            end=end, 
+            orders=orders,
+            replace=replace
+        )
+        print('meh')
+        dataset2 = SyntheticDataset(examples, labels, tokenizer, sequence_length)
+        
+        # torch.save(dataset, dataset_path)
     
     # Obtain split
-    train_dataloader, val_dataloader, test_dataloader = get_split(dataset)
+    train_dataset, validation_set1, _ = get_split(dataset1)
+    _, validation_set2, _ = get_split(dataset2) # Validate without parity
 
     # Define model parameters
     vocab_size = tokenizer.vocab_size
@@ -88,16 +111,17 @@ def main():
         num_heads=2,
         num_layers=num_layers,
         num_classes=4,
-        num_hiddens=128,
-        chunk_size=128,
-        ffn_num_hiddens=512,
-        max_len=sequence_length
+        num_hiddens=32,
+        chunk_size=25,
+        ffn_num_hiddens=128,
+        max_len=100
     ).cuda()
+   # model = MinGRUClassifier(vocab_size=vocab_size, embedding_dim=128, expansion_factor=1.5, num_layers=num_layers, bidirectional=True, num_logits=4).cuda()
     
 
     num_parameters = sum(p.numel() for p in model.parameters())
 
-    total_loss, validation_accuracy, steps, total_epochs, avg_time_per_step = train(model, train_dataloader, val_dataloader, num_epochs, loss_fn, learning_rate, early_stopping=True)
+    total_loss, validation_accuracy, steps, total_epochs, avg_time_per_step = train(model, train_dataset, validation_set1, num_epochs, loss_fn, learning_rate, early_stopping=True)
 
     next_row = get_new_row()
 
@@ -106,8 +130,8 @@ def main():
     next_row['Layers'] = num_layers
     next_row['Parameters'] = num_parameters
     next_row['Sequence Length'] = sequence_length
-    next_row['Dataset Size'] = len(dataset)
-    next_row['Token Distance'] = token_distance
+    next_row['Dataset Size'] = len(dataset1)
+    next_row['Token Distance'] = None
     next_row['Start'] = start
     next_row['End'] = end
     next_row['Training Steps'] = steps
@@ -118,6 +142,8 @@ def main():
     next_row['Validation Loss'] = total_loss
 
     append_line(out_path, next_row)
+
+    evaluate(model, validation_set2, loss_fn)
 
 if __name__ == '__main__':
     main()
