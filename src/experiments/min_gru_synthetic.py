@@ -9,18 +9,22 @@ from train.utility import train
 from datasets.utility import get_split
 from utils.utility import get_new_row, create_file, append_line
 
+
 def main():
     parser = argparse.ArgumentParser()
-    parser.add_argument('--dataset_path', type=str, help='Path to load the dataset from or save the dataset to')
-    parser.add_argument('--out_path', type=str, help='Path to save the results to')
+    parser.add_argument('--dataset_path', type=str,
+                        help='Path to load the dataset from or save the dataset to')
+    parser.add_argument('--out_path', type=str,
+                        help='Path to save the results to')
     args = parser.parse_args()
 
     dataset_path = args.dataset_path
     out_path = args.out_path
-    
+
     sequence_length = 1024
     model_name = 'bert-base-uncased'
-    tokenizer = AutoTokenizer.from_pretrained(model_name, model_max_length=sequence_length)
+    tokenizer = AutoTokenizer.from_pretrained(
+        model_name, model_max_length=sequence_length)
 
     if dataset_path is None or dataset_path is None:
         raise ValueError("dataset_path and out_path must be specified")
@@ -59,20 +63,21 @@ def main():
         ]
 
         examples, labels = generate_dataset8(
-            seq_len=sequence_length, 
-            num_examples=num_examples, 
-            grammars=grammars, 
-            num_labels=num_labels, 
-            num_subsequences=num_subsequences, 
-            token_distance=token_distance, 
-            start=start, 
-            end=end, 
+            seq_len=sequence_length,
+            num_examples=num_examples,
+            grammars=grammars,
+            num_labels=num_labels,
+            num_subsequences=num_subsequences,
+            token_distance=token_distance,
+            start=start,
+            end=end,
             replace=replace
         )
 
-        dataset = SyntheticDataset(examples, labels, tokenizer, sequence_length)
+        dataset = SyntheticDataset(
+            examples, labels, tokenizer, sequence_length)
         torch.save(dataset, dataset_path)
-    
+
     # Obtain split
     train_dataloader, val_dataloader, test_dataloader = get_split(dataset)
 
@@ -87,13 +92,13 @@ def main():
 
     loss_fn = torch.nn.CrossEntropyLoss()
 
-    #model = MinGRUClassifier(vocab_size=vocab_size, embedding_dim=embedding_dim, expansion_factor=expansion_factor, num_layers=num_layers, bidirectional=True, num_logits=4).cuda()
+    # model = MinGRUClassifier(vocab_size=vocab_size, embedding_dim=embedding_dim, expansion_factor=expansion_factor, num_layers=num_layers, bidirectional=True, num_logits=4).cuda()
     # Transformer
-    
 
     num_parameters = sum(p.numel() for p in model.parameters())
 
-    total_loss, accuracy, steps, total_epochs, avg_time_per_step = train(model, train_dataloader, val_dataloader, num_epochs, loss_fn, learning_rate, early_stopping=True)
+    total_loss, accuracy, steps, total_epochs, avg_time_per_step = train(
+        model, train_dataloader, val_dataloader, num_epochs, loss_fn, learning_rate, early_stopping=True)
 
     # Create the new row and update the fields for MinGRU
     next_row['Model'] = 'MinGRUClassifier'
@@ -112,6 +117,7 @@ def main():
     next_row['Validation Loss'] = total_loss
 
     append_line(out_path, next_row)
+
 
 if __name__ == '__main__':
     main()
