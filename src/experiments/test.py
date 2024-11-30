@@ -70,7 +70,7 @@ def main():
             expansion_factor=config.expansion_factor,
             num_layers=config.num_layers,
             bidirectional=config.bidirectional,
-            num_classes=4
+            num_classes=dataset_config.num_labels,
         ).cuda()
     else:
         config = TransformerConfig()
@@ -78,7 +78,7 @@ def main():
             vocab_size=vocab_size,
             num_heads=config.num_heads,
             num_layers=config.num_layers,
-            num_classes=4,
+            num_classes=dataset_config.num_labels,
             num_hiddens=config.num_hiddens,
             ffn_num_hiddens=config.ffn_num_hiddens,
             chunk_size=config.chunk_size,

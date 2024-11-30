@@ -3,6 +3,7 @@ import torch.nn.functional as F
 import torch.nn.modules.normalization as N
 from layers.rnn.MinGRU import MinGRU
 
+
 class FCNN(nn.Module):
     def __init__(self, dim, hidden_dim):
         super().__init__()
@@ -11,24 +12,27 @@ class FCNN(nn.Module):
             nn.GELU(),
             nn.Linear(hidden_dim, dim)
         )
-    
+
     def forward(self, x):
         return self.net(x)
+
 
 class CausalDepthWiseConv1D(nn.Module):
     def __init__(self, dim, kernel_size):
         super().__init__()
         self.kernel_size = kernel_size
         self.net = nn.Sequential(
-            nn.Conv1d(dim, dim, kernel_size=kernel_size, padding='same', groups=dim),
+            nn.Conv1d(dim, dim, kernel_size=kernel_size,
+                      padding='same', groups=dim),
             nn.Conv1d(dim, dim, kernel_size=1)
         )
-    
+
     # TODO: Figure out why we need to transpose
     def forward(self, x):
-        x = x.transpose(-2, -1) # b n d -> b d n
+        x = x.transpose(-2, -1)  # b n d -> b d n
         x = self.net(x)
-        return x.transpose(-2, -1) # b d n -> b n d
+        return x.transpose(-2, -1)  # b d n -> b n d
+
 
 class MinGRULM(nn.Module):
     """
@@ -40,14 +44,15 @@ class MinGRULM(nn.Module):
         num_layers: int, the depth of the model
         conv_kernel_size: int, the kernel size of the convolutional layer
     """
+
     def __init__(self,
-        *,
-        num_tokens,
-        input_dim,
-        hidden_dim,
-        num_layers,
-        conv_kernel_size=3,
-    ):
+                 *,
+                 num_tokens,
+                 input_dim,
+                 hidden_dim,
+                 num_layers,
+                 conv_kernel_size=3,
+                 ):
         super().__init__()
         self.num_layers = num_layers
         self.num_tokens = num_tokens
@@ -59,9 +64,11 @@ class MinGRULM(nn.Module):
         for _ in range(num_layers):
             self.layers.append(nn.ModuleList([
                 CausalDepthWiseConv1D(input_dim, conv_kernel_size),
-                N.RMSNorm(input_dim), # TODO: Verify behaviour with these arguments
+                # TODO: Verify behaviour with these arguments
+                N.RMSNorm(input_dim),
                 MinGRU(input_dim, hidden_dim),
-                N.RMSNorm(input_dim), # TODO: Verify behaviour with these arguments
+                # TODO: Verify behaviour with these arguments
+                N.RMSNorm(input_dim),
                 FCNN(input_dim, hidden_dim)
             ]))
 
@@ -83,29 +90,35 @@ class MinGRULM(nn.Module):
         Args:
             x: torch.LongTensor
             h_prev: torch.Tensor
-        
+
         Returns:
             out: torch.Tensor
             h_next: torch.Tensor
         """
         is_sequential = prev_hiddens is not None
-        
-        x = self.embedding(x) # batch_size, sequence_length -> batch_size, sequence_length, hidden_dim
 
-        h_next = [] # Stores the output hidden states from each layer of the deep RNN (which should be used in the next token)
+        # batch_size, sequence_length -> batch_size, sequence_length, hidden_dim
+        x = self.embedding(x)
 
-        prev_hiddens_iter = iter(prev_hiddens if is_sequential else []) # Iterate over num_layers dimension
+        # Stores the output hidden states from each layer of the deep RNN (which should be used in the next token)
+        h_next = []
 
-        for conv, norm1, mingru, norm2, fcnn in self.layers: # Iterate over layers
-            next_prev_hidden = next(prev_hiddens_iter) if is_sequential else None
-            x = conv(x) + x # Convolution layer with skip connection
+        # Iterate over num_layers dimension
+        prev_hiddens_iter = iter(prev_hiddens if is_sequential else [])
+
+        for conv, norm1, mingru, norm2, fcnn in self.layers:  # Iterate over layers
+            next_prev_hidden = next(
+                prev_hiddens_iter) if is_sequential else None
+            x = conv(x) + x  # Convolution layer with skip connection
             # MinGRU layer, using the previous hidden state from the appropriate layer.
-            min_gru_out, h_l_next = mingru(norm1(x), next_prev_hidden, return_hidden=is_sequential)
-            x = min_gru_out + x # Skip over MinGRU
-            x = fcnn(norm2(x)) + x # Skip connection over RMSNorm & FCNN
-            h_next.append(h_l_next) # Add hidden state from this layer
-        
+            min_gru_out, h_l_next = mingru(
+                norm1(x), next_prev_hidden, return_hidden=is_sequential)
+            x = min_gru_out + x  # Skip over MinGRU
+            x = fcnn(norm2(x)) + x  # Skip connection over RMSNorm & FCNN
+            h_next.append(h_l_next)  # Add hidden state from this layer
+
         # Compute embedding
         out = self.out(self.norm(x))
 
-        return out, h_next # Return output token from output layer, and hidden states from each layer
+        # Return output token from output layer, and hidden states from each layer
+        return out, h_next

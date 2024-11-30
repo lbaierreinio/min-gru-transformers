@@ -2,11 +2,14 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 
+
 class MinGRU(nn.Module):
     def __init__(self, dim_in, dim_hidden):
         super().__init__()
-        self.linear_z = nn.Linear(dim_in, dim_hidden) # Linear layer for producing z from x
-        self.linear_h = nn.Linear(dim_in, dim_hidden) # Linear layer for producing candidate state h_tilde from x
+        # Linear layer for producing z from x
+        self.linear_z = nn.Linear(dim_in, dim_hidden)
+        # Linear layer for producing candidate state h_tilde from x
+        self.linear_h = nn.Linear(dim_in, dim_hidden)
 
     def parallel_scan_log(self, log_a, log_b):
         """
@@ -57,19 +60,20 @@ class MinGRU(nn.Module):
             h: torch.Tensor [batch_size, seq_len, dim_hidden]
         """
         k = self.linear_z(x)
-        tilde_h = self.linear_h(x) # Candidate state
+        tilde_h = self.linear_h(x)  # Candidate state
 
-        if h_prev is not None: # Sequential mode
+        if h_prev is not None:  # Sequential mode
             assert x.shape[1] == 1
             z = torch.sigmoid(k)
             tilde_h = self.g(tilde_h)
-            h = (1 - z) * h_prev + z * tilde_h # h[t]
-        else: # Parallel Mode
+            h = (1 - z) * h_prev + z * tilde_h  # h[t]
+        else:  # Parallel Mode
             # NOTE: the implementation provided in the paper allows providing an explicit
             #       starting state h_0; we fix h_0 (implicitly) to be zero initialized
-            log_z = -F.softplus(-k) # Log (z)
-            log_one_minus_z = -F.softplus(k) # Log (1 - z)
-            log_tilde_h = self.log_g(tilde_h) # Log candidate state
-            h = self.parallel_scan_log(log_one_minus_z, log_z + log_tilde_h) # Hidden states
+            log_z = -F.softplus(-k)  # Log (z)
+            log_one_minus_z = -F.softplus(k)  # Log (1 - z)
+            log_tilde_h = self.log_g(tilde_h)  # Log candidate state
+            h = self.parallel_scan_log(
+                log_one_minus_z, log_z + log_tilde_h)  # Hidden states
 
         return h
