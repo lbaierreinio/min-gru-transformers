@@ -30,17 +30,20 @@ def main():
     if train_dataset_path is None or validation_dataset_path is None:
         raise ValueError("Paths must be specified")
 
-    config = DatasetConfig()
+    if not os.path.exists(train_dataset_path) or not os.path.exists(validation_dataset_path):
+        raise ValueError("Paths must point to a valid file")
+
+    dataset_config = DatasetConfig()
 
     tokenizer = AutoTokenizer.from_pretrained(
-        config.tokenizer, model_max_length=config.sequence_length)
+        dataset_config.tokenizer, model_max_length=dataset_config.sequence_length)
 
     train_dataset = torch.load(train_dataset_path)
     val_dataset = torch.load(validation_dataset_path)
     train_dataloader1, val_dataloader1, _ = get_split(train_dataset)
     _, val_dataloader2, _ = get_split(val_dataset)
 
-    # Define model parameters
+    # Define Model
     vocab_size = tokenizer.vocab_size
     learning_rate = 1e-4
     num_epochs = 200
@@ -56,7 +59,7 @@ def main():
         num_hiddens=32,
         ffn_num_hiddens=128,
         chunk_size=128,
-        max_len=config.sequence_length,
+        max_len=dataset_config.sequence_length,
     ).cuda()
 
     num_parameters = sum(p.numel() for p in model.parameters())
@@ -72,11 +75,11 @@ def main():
     next_row['Model'] = 'Transformer'
     next_row['Layers'] = num_layers
     next_row['Parameters'] = num_parameters
-    next_row['Sequence Length'] = config.sequence_length
+    next_row['Sequence Length'] = dataset_config.sequence_length
     next_row['Dataset Size'] = len(train_dataset)
     next_row['Token Distance'] = 'N/A'
-    next_row['Start'] = config.start
-    next_row['End'] = config.end
+    next_row['Start'] = dataset_config.start
+    next_row['End'] = dataset_config.end
     next_row['Training Steps'] = steps
     next_row['Number of Epochs'] = total_epochs
     next_row['Training Time'] = avg_time_per_step
