@@ -43,18 +43,20 @@ def main():
     # Define model parameters
     vocab_size = tokenizer.vocab_size
     learning_rate = 1e-4
-    num_epochs = 10000
-    num_layers = 4
+    num_epochs = 200
+    num_layers = 2
 
     loss_fn = torch.nn.CrossEntropyLoss()
 
     model = LongTransformerClassifier(
         vocab_size=vocab_size,
-        num_heads=8,
+        num_heads=2,
         num_layers=num_layers,
         num_classes=4,
-        num_hiddens=128,
-        ffn_num_hiddens=2048
+        num_hiddens=32,
+        ffn_num_hiddens=128,
+        chunk_size=128,
+        max_len=config.sequence_length,
     ).cuda()
 
     num_parameters = sum(p.numel() for p in model.parameters())
@@ -71,7 +73,7 @@ def main():
     next_row['Layers'] = num_layers
     next_row['Parameters'] = num_parameters
     next_row['Sequence Length'] = config.sequence_length
-    next_row['Dataset Size'] = len(dataset1)
+    next_row['Dataset Size'] = len(train_dataset)
     next_row['Token Distance'] = 'N/A'
     next_row['Start'] = config.start
     next_row['End'] = config.end

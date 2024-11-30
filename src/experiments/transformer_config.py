@@ -2,9 +2,9 @@ from dataclasses import dataclass
 
 
 @dataclass
-class DatasetConfig:
+class MinGRUConfig:
     """
-    Configuration of an experiment.
+    Configuration for minGRU experiments.
     """
     sequence_length: int = 256
     num_examples: int = 2000
