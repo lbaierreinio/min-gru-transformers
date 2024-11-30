@@ -50,56 +50,49 @@ def main():
     tokenizer = AutoTokenizer.from_pretrained(
         dataset_config.tokenizer, model_max_length=dataset_config.sequence_length)
 
-    train_dataset = torch.load(train_dataset_path)
     val_dataset = torch.load(validation_dataset_path)
-    train_dataloader1, val_dataloader1, _ = get_split(train_dataset)
-    _, val_dataloader2, _ = get_split(val_dataset)
+    train_dataset = torch.load(train_dataset_path)
+    train_dataloader1, val_dataloader1 = get_split(train_dataset)
+    _, val_dataloader2 = get_split(val_dataset)
 
     # (3) Load Training Parameters
     train_config = TrainConfig()
     loss_fn = torch.nn.CrossEntropyLoss()
 
     # (4) Define Model and Configuration
-    mingru_config = MinGRUConfig()
-    transformer_config = TransformerConfig()
     vocab_size = tokenizer.vocab_size
 
-    config_dict = {
-        0: mingru_config,
-        1: transformer_config
-    }
-
-    model_dict = {
-        0: MinGRUClassifier(
+    if model == 0:
+        config = MinGRUConfig()
+        model = MinGRUClassifier(
             vocab_size=vocab_size,
-            embedding_dim=mingru_config.embedding_dim,
-            expansion_factor=mingru_config.expansion_factor,
-            num_layers=mingru_config.num_layers,
-            bidirectional=mingru_config.bidirectional,
-            num_classes=dataset_config.num_labels
-        ).cuda(),
-        1: LongTransformerClassifier(
+            embedding_dim=config.embedding_dim,
+            expansion_factor=config.expansion_factor,
+            num_layers=config.num_layers,
+            bidirectional=config.bidirectional,
+            num_classes=4
+        ).cuda()
+    else:
+        config = TransformerConfig()
+        model = LongTransformerClassifier(
             vocab_size=vocab_size,
-            num_heads=transformer_config.num_heads,
-            num_layers=transformer_config.num_layers,
-            num_classes=dataset_config.num_labels,
-            num_hiddens=transformer_config.num_hiddens,
-            ffn_num_hiddens=transformer_config.ffn_num_hiddens,
-            chunk_size=transformer_config.chunk_size,
+            num_heads=config.num_heads,
+            num_layers=config.num_layers,
+            num_classes=4,
+            num_hiddens=config.num_hiddens,
+            ffn_num_hiddens=config.ffn_num_hiddens,
+            chunk_size=config.chunk_size,
             max_len=dataset_config.sequence_length,
         ).cuda()
-    }
 
-    config = config_dict[model]
-    selected_model = model_dict[model]
-    num_parameters = sum(p.numel() for p in selected_model.parameters())
+    num_parameters = sum(p.numel() for p in model.parameters())
 
     # (5) Train Model
     _, _, steps, total_epochs, avg_time_per_step = train(
-        selected_model, train_dataloader1, val_dataloader1, train_config.num_epochs, loss_fn, train_config.learning_rate, early_stopping=train_config.early_stopping)
+        model, train_dataloader1, val_dataloader1, train_config.num_epochs, loss_fn, train_config.learning_rate, early_stopping=train_config.early_stopping)
 
     validation_accuracy, total_loss = evaluate(
-        selected_model, val_dataloader2, loss_fn)
+        model, val_dataloader2, loss_fn)
 
     # (6) Store Results
     next_row = get_new_row()

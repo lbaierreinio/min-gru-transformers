@@ -87,16 +87,13 @@ def generate_dataset8(*, seq_len, num_examples, grammars, num_labels, num_subseq
     return examples, labels
 
 
-def get_split(dataset, batch_size=32, validation_split=0.1, test_split=0.1, seed=42):
+def get_split(dataset, batch_size=8, validation_split=0.1, seed=42):
     val_size = int(validation_split * len(dataset))
-    test_size = int(test_split * len(dataset))
-    train_dataset, val_dataset, test_dataset = torch.utils.data.random_split(
-        dataset, [len(dataset) - val_size - test_size, val_size, test_size])
+    train_dataset, val_dataset = torch.utils.data.random_split(
+        dataset, [len(dataset) - val_size, val_size])
     train_dataloader = DataLoader(
         train_dataset, batch_size=batch_size, shuffle=True)
     val_dataloader = DataLoader(
         val_dataset, batch_size=batch_size, shuffle=True)
-    test_dataloader = DataLoader(
-        test_dataset, batch_size=batch_size, shuffle=True)
 
-    return train_dataloader, val_dataloader, test_dataloader
+    return train_dataloader, val_dataloader
