@@ -51,7 +51,7 @@ class minGRUSquadQA(nn.Module):
 
         x = self.encoder.wte(x) # (B, T, dim_hidden)
         # forward the blocks of the transformer
-        for layer in self.layers.h:
+        for layer in self.encoder.layers:
             x = layer(x) # (B, T, dim_hidden)
         # final layernorm and classifier
         x = self.encoder.ln_f(x) # (B, T, dim_hidden)
@@ -61,4 +61,15 @@ class minGRUSquadQA(nn.Module):
         return logits, loss
 
     def loss(self, logits, targets):
-        raise Exception, "TODO"
+        """Sum of cross entropy of start and end positions, weighed equally.
+
+        Inputs:
+        - logits [B, T, 2]: each [T, 2] item is a pair of logits for the start and end position for each token in the sequence
+        - targets: [B, 2]: the correct start and end positions for each example
+        """
+
+        start_pos_logits = logits[:,:,0]
+        start_pos_targets = targets[:,0]
+        end_pos_logits = logits[:,:,1]
+        end_pos_targets = targets[:, 1]
+        return F.cross_entropy(start_pos_logits, start_pos_targets) + F.cross_entropy(end_pos_logits, end_pos_targets)

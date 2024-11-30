@@ -36,6 +36,7 @@ def preprocess_function(tokenizer, examples):
             cls_token_idx = inputs["input_ids"][i].index(tokenizer.cls_token_id)
             start_positions.append(cls_token_idx)
             end_positions.append(cls_token_idx)
+            continue
 
         # Answerable question
         start_char = answer["answer_start"][0]
@@ -60,6 +61,7 @@ def preprocess_function(tokenizer, examples):
 
     inputs["answer_start_idx"] = start_positions
     inputs["answer_end_idx"] = end_positions
+    inputs.pop("attention_mask") # remove
     return inputs
 
 
