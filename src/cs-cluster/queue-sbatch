@@ -1,11 +1,1 @@
-#!/bin/bash
-#SBATCH --partition=gpunodes
-#SBATCH --cpus-per-task=4
-#SBATCH --mem=16G
-#SBATCH --gres=gpu:rtx_a2000:1 nvidia-smi -L
-#SBATCH --time=60
-#SBATCH --job-name=job
-#SBATCH --output=/w/340/lucbr/outs/slurm-%j.out
-
-
-srun python3 experiments/min_gru_synthetic.py --dataset_path='dataset.pt' --out_path='out.csv'
+srun --partition=gpunodes -c 4 --mem=16G --gres=gpu:1 -t 60 cs-cluster/script.sh
