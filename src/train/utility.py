@@ -32,7 +32,6 @@ def train(model, train_dataloader, val_dataloader, num_epochs, loss_fn, learning
     steps = 0
     total_time = 0
     for epoch in range(0, num_epochs+1):
-        print("Epoch")
         model.train()
         total_loss = 0.0
         for batch in train_dataloader:
