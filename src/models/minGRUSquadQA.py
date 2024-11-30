@@ -7,14 +7,14 @@ from layers.MinGRU import MinGRU
 
 
 @dataclass
-class minGRUSquadQAConfig:
+class MinGRUSquadQAConfig:
     vocab_size: int = 30522 # Default BERT tokenizer vocab size
     n_layer: int = 12
     hidden_dim: int = 768
     classification_head_dim: int = 768
 
 
-class minGRULayer(nn.Module):
+class MinGRULayer(nn.Module):
     def __init__(self, config):
         super().__init__()
         self.ln_1 = nn.LayerNorm(config.hidden_dim)
@@ -28,7 +28,7 @@ class minGRULayer(nn.Module):
         return x
 
 
-class minGRUSquadQA(nn.Module):
+class MinGRUSquadQA(nn.Module):
     def __init__(self, config):
         super().__init__()
         self.config = config
@@ -36,7 +36,7 @@ class minGRUSquadQA(nn.Module):
         # Produce contextualized embeddings for each sequence element
         self.encoder = nn.ModuleDict(dict(
             wte = nn.Embedding(config.vocab_size, config.hidden_dim),
-            layers = nn.ModuleList(minGRULayer(config) for _ in range(config.n_layer)),
+            layers = nn.ModuleList(MinGRULayer(config) for _ in range(config.n_layer)),
             ln_f = nn.LayerNorm(config.hidden_dim),
         ))
         # Project each embedding into 2D space representing [start_prob, end_prod]
@@ -50,7 +50,7 @@ class minGRUSquadQA(nn.Module):
         B, T = x.shape
 
         x = self.encoder.wte(x) # (B, T, dim_hidden)
-        # forward the blocks of the transformer
+        # forward through layers of minGRU
         for layer in self.encoder.layers:
             x = layer(x) # (B, T, dim_hidden)
         # final layernorm and classifier

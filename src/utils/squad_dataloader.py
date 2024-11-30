@@ -4,8 +4,9 @@ from torch.utils.data import DataLoader
 from datasets import load_dataset
 from transformers import DataCollatorWithPadding
 
+
 def preprocess_function(tokenizer, examples):
-    """Given examples, a dict containing questions, contexts, and answers, perform minimal cleanup
+    """Given examples (a dict containing questions, contexts, and answers) perform minimal cleanup
     of the questions and contexts (in our case, just strip leading/trailing whitespace), tokenize
     their concatenation using the provided tokenizer, and finally add the start and end positions
     of the answer in the tokenized sequence.

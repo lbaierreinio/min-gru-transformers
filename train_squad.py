@@ -6,7 +6,7 @@ from transformers import AutoTokenizer
 from transformers import get_cosine_schedule_with_warmup
 from tqdm import tqdm
 
-from models.minGRUSquadQA import minGRUSquadQA, minGRUSquadQAConfig
+from models.MinGRUSquadQA import MinGRUSquadQA, MinGRUSquadQAConfig
 from utils.squad_dataloader import get_squad_v2_dataloaders
 
 # TODO: may want to dograident accumulation
@@ -47,13 +47,13 @@ classification_head_dim = 256
 #########################################################
 # Create model
 tokenizer = AutoTokenizer.from_pretrained("bert-base-cased")
-config = minGRUSquadQAConfig(
+config = MinGRUSquadQAConfig(
     vocab_size=tokenizer.vocab_size,
     n_layer=n_layer,
     hidden_dim=hidden_dim,
     classification_head_dim=classification_head_dim
 )
-model = minGRUSquadQA(config)
+model = MinGRUSquadQA(config)
 model.to(device)
 
 train_loader, val_loader = get_squad_v2_dataloaders(tokenizer, batch_size=B)
