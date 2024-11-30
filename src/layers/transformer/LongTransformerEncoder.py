@@ -19,6 +19,9 @@ class LongTransformerEncoder(nn.Module):
     ])
 
   def forward(self, x):
+    x = self.embedding(x) * math.sqrt(self.num_hiddens)
+    x = self.pos_encoder(x)
+
     for layer in self.layers:
-      x = layer(x_out)
+      x = layer(x)
     return x[:, -1]

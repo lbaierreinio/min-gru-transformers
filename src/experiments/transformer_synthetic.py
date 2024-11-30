@@ -79,17 +79,17 @@ def main():
     vocab_size = tokenizer.vocab_size
     learning_rate = 1e-4
     num_epochs = 10000
-    num_layers = 4
+    num_layers = 2
 
     loss_fn = torch.nn.CrossEntropyLoss()
 
     model = LongTransformerClassifier(
         vocab_size=vocab_size,
-        num_heads=8,
+        num_heads=4,
         num_layers=num_layers,
         num_classes=4,
         num_hiddens=128,
-        ffn_num_hiddens=2048
+        ffn_num_hiddens=512
     ).cuda()
     
 

@@ -1,5 +1,5 @@
 import torch.nn as nn
-from layers.BiMinGRU.BiMinGRU import BiMinGRU
+from layers.rnn.BiMinGRU import BiMinGRU
 from layers.transformer.TransformerEncoderBlock import TransformerEncoderBlock
 
 class TransformerMinGRUEncoderBlock(nn.Module):
@@ -8,7 +8,7 @@ class TransformerMinGRUEncoderBlock(nn.Module):
     self.chunk_size = chunk_size
 
     self.transformer_encoder = TransformerEncoderBlock(num_heads, num_hiddens, ffn_num_hiddens, dropout, bias)
-    self.bi_min_gru = nn.BiMinGRU(num_hiddens, num_hiddens)
+    self.bi_min_gru = BiMinGRU(num_hiddens, num_hiddens)
     self.ln = nn.LayerNorm(num_hiddens)
 
   def forward(self, x):
