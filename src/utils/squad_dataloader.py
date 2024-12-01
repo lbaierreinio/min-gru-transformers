@@ -66,10 +66,16 @@ def preprocess_function(tokenizer, examples):
     return inputs
 
 
-def get_squad_v2_dataloaders(tokenizer, batch_size):
+def get_squad_v2_dataloaders(tokenizer, batch_size, num_examples=None):
     # Load datasets from HuggingFace
     train_dataset = load_dataset("rajpurkar/squad_v2", split="train")
     val_dataset = load_dataset("rajpurkar/squad_v2", split="validation")
+
+    # Selects a subset if num_examples is specified**
+    if num_examples is not None:
+        train_dataset = train_dataset.select(range(num_examples))
+        val_dataset = val_dataset.select(range(num_examples))
+
 
     # Preprocess and tokenize
     train_dataset = train_dataset.map(
