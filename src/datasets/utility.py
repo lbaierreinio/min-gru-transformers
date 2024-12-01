@@ -1,3 +1,4 @@
+import math
 import torch
 import numpy as np
 from torch.utils.data import DataLoader
@@ -31,7 +32,7 @@ appear and (b) determine if the two indicator tokens are the same.
 '''
 
 
-def generate_dataset8(*, seq_len, num_examples, grammars, num_labels, num_subsequences, start, end, orders, even, seed=42):
+def generate_dataset8(*, seq_len, num_examples, grammars, num_labels, num_subsequences, start, end, orders, seed=42):
 
     assert seq_len % num_subsequences == 0, "Sequence length must be divisible by number of subsequences"
     assert start < end, "Start must be less than end"
@@ -42,7 +43,6 @@ def generate_dataset8(*, seq_len, num_examples, grammars, num_labels, num_subseq
     assert len(
         orders) == num_labels // 2, "Number of orders must be equal to half the number of labels"
 
-    s, e = int(start // 2), int(end // 2)
     # Generate labels
     indicators = ['X', 'Y']
     halved_num_labels = int(num_labels // 2)
@@ -50,26 +50,18 @@ def generate_dataset8(*, seq_len, num_examples, grammars, num_labels, num_subseq
     examples = np.zeros((num_examples, seq_len), dtype=object)
     labels = np.zeros(num_examples, dtype=int)
     for _ in range(0, num_examples):
+        cur_seq_len = np.random.randint(seq_len // 2, seq_len)
         label = np.random.choice(range(halved_num_labels))
         order = orders[label]
-        subseq_len = int(seq_len / num_subsequences)
+        subseq_len = (math.ceil(cur_seq_len / num_subsequences))
         sequence = []
         for i in range(0, num_subsequences):
             sequence += generate_grammar(grammars[order[i]], subseq_len)
 
-        idx_one = np.random.randint(s, e)
+        idx_one = np.random.randint(0, cur_seq_len)
         idx_two = idx_one
         while idx_one == idx_two:
-            idx_two = np.random.randint(s, e)
-
-        idx_one = idx_one * 2
-        idx_two = idx_two * 2
-
-        if not even:
-            idx_one = max(1, idx_one - 1)
-            idx_two = max(1, idx_two - 1)
-            if idx_one == idx_two:
-                idx_two += 2
+            idx_two = np.random.randint(0, cur_seq_len)
 
         sequence[idx_one] = np.random.choice(indicators)
         sequence[idx_two] = np.random.choice(indicators)
@@ -80,6 +72,8 @@ def generate_dataset8(*, seq_len, num_examples, grammars, num_labels, num_subseq
         if first == second:
             label += halved_num_labels
 
+        sequence = sequence + ['PAD'] * (seq_len - len(sequence))
+
         examples[_] = sequence
 
         labels[_] = label
@@ -87,7 +81,7 @@ def generate_dataset8(*, seq_len, num_examples, grammars, num_labels, num_subseq
     return examples, labels
 
 
-def get_split(dataset, batch_size=8, validation_split=0.1, seed=42):
+def get_split(dataset, *, batch_size=32, validation_split=0.1, seed=42):
     val_size = int(validation_split * len(dataset))
     train_dataset, val_dataset = torch.utils.data.random_split(
         dataset, [len(dataset) - val_size, val_size])
