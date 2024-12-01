@@ -44,20 +44,14 @@ def main():
         },
     ]
 
-    orders = [
-        [0, 1],
-        [1, 0],
-    ]
-
     examples, labels = generate_dataset8(
         seq_len=config.sequence_length,
         num_examples=config.num_examples,
+        alpha=config.alpha
+        beta=config.alpha,
+        k_split=config.k_split,
+        k_indicator=config.k_indicator,
         grammars=grammars,
-        num_labels=config.num_labels,
-        num_subsequences=config.num_subsequences,
-        start=config.start,
-        end=config.end,
-        orders=orders,
     )
 
     dataset = SyntheticDataset(

@@ -4,12 +4,12 @@ from dataclasses import dataclass
 @dataclass
 class DatasetConfig:
     """
-    Configuration of an experiment.
+    Configuration of the experiment.
     """
-    sequence_length: int = 96
-    num_examples: int = 500
-    num_labels: int = 4
-    num_subsequences: int = 2
-    start: int = 0
-    end: int = 96
+    sequence_length: int = 512
+    num_examples: int = 100
     tokenizer: str = 'bert-base-uncased'
+    alpha: int = 1
+    beta: int = 4
+    k_split: float = 0.05
+    k_indicator: float = 0.1

@@ -1,5 +1,4 @@
 import os
-import torch
 import pandas as pd
 import torch.nn.functional as F
 
@@ -7,8 +6,8 @@ import torch.nn.functional as F
 def create_file(path):
     data = []
     # adding header
-    headerList = ['Model', 'Layers', 'Parameters', 'Sequence Length', 'Dataset Size', 'Token Distance', 'Start', 'End',
-                  'Training Steps', 'Number of Epochs', 'Training Time', 'Memory Per Epoch', 'Validation Accuracy', 'Validation Loss']
+    headerList = ['Model', 'Layers', 'Parameters', 'Sequence Length', 'Dataset Size', 'Training Steps',
+                  'Number of Epochs', 'Training Time', 'Memory Per Epoch', 'Validation Accuracy', 'Validation Loss']
 
     # Convert the data to a DataFrame
     df = pd.DataFrame(data, columns=headerList)
@@ -30,9 +29,6 @@ def get_new_row():
         'Parameters': '1.7B',
         'Sequence Length': 1024,
         'Dataset Size': 10000,
-        'Token Distance': 3,
-        'Start': 1020,
-        'End': 1024,
         'Training Steps': 1,
         'Number of Epochs': 1,
         'Training Time': 120,

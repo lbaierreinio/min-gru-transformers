@@ -53,10 +53,7 @@ def main():
     next_row['Layers'] = 'N/A'
     next_row['Parameters'] = num_parameters
     next_row['Sequence Length'] = dataset_config.sequence_length
-    next_row['Dataset Size'] = len(train_dataset)
-    next_row['Token Distance'] = 'N/A'
-    next_row['Start'] = dataset_config.start
-    next_row['End'] = dataset_config.end
+    next_row['Dataset Size'] = dataset_config.num_examples
     next_row['Training Steps'] = 'N/A'
     next_row['Number of Epochs'] = 'N/A'
     next_row['Training Time'] = 'N/A'

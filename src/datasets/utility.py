@@ -1,4 +1,3 @@
-import math
 import torch
 import numpy as np
 from torch.utils.data import DataLoader
@@ -25,53 +24,52 @@ def generate_grammar(rules, seq_len):
 
 
 '''
-Long-Context Task for both Summarization & Long Range Dependency. Specifically,
-the model is asked to do two things: (a) summarize the order in which the subsequences
-appear and (b) determine if the two indicator tokens are the same.
-
+Long-Context Task for both Summarization & Long Range Dependencies. Specifically,
+the model is asked to solve two tasks simultaneously: 
+(a) Recall which order the two grammars appeared in.
+(b) Determine if the two indicator tokens are the same.
 '''
 
 
-def generate_dataset8(*, seq_len, num_examples, grammars, num_labels, num_subsequences, start, end, orders, seed=42):
-
-    assert seq_len % num_subsequences == 0, "Sequence length must be divisible by number of subsequences"
-    assert start < end, "Start must be less than end"
-    assert start >= 0, "Start must be greater than or equal to 0"
-    assert end <= seq_len, "End must be less than or equal to sequence length"
-    assert num_labels >= 2, "Number of labels must be greater than or equal to 2"
-    assert len(grammars) >= 1, "Must specify at least one grammar"
-    assert len(
-        orders) == num_labels // 2, "Number of orders must be equal to half the number of labels"
-
+def generate_dataset8(*, seq_len, num_examples, grammars, alpha, beta, k_split, k_indicator, seed=42):
+    assert len(grammars) == 2, "Must provide two distinct grammars"
+    assert seq_len >= 32, "Sequence length must be at least 32"
+    assert num_examples > 100, "Number of examples must be greater than 100"
     # Generate labels
     indicators = ['X', 'Y']
-    halved_num_labels = int(num_labels // 2)
+    orders = [[0, 1], [1, 0], [1, 1], [0, 0]]
 
     examples = np.zeros((num_examples, seq_len), dtype=object)
     labels = np.zeros(num_examples, dtype=int)
     for _ in range(0, num_examples):
-        cur_seq_len = np.random.randint(seq_len // 2, seq_len)
-        label = np.random.choice(range(halved_num_labels))
+        # Select label
+        label = np.random.choice(range(len(orders)))
         order = orders[label]
-        subseq_len = (math.ceil(cur_seq_len / num_subsequences))
-        sequence = []
-        for i in range(0, num_subsequences):
-            sequence += generate_grammar(grammars[order[i]], subseq_len)
 
-        idx_one = np.random.randint(0, cur_seq_len)
-        idx_two = idx_one
-        while idx_one == idx_two:
-            idx_two = np.random.randint(0, cur_seq_len)
+        # Draw sequence length from beta distribution
+        cur_seq_len = min(32, int(np.random.beta(alpha, beta) * seq_len))
+
+        # Draw split of sequences from normal distribution centered around middle of sequence
+        split = np.clip(int(np.random.normal(cur_seq_len // 2,
+                        cur_seq_len * 0.05)), 8, cur_seq_len - 8)
+
+        sequence = generate_grammar(
+            grammars[order[0]], split) + generate_grammar(grammars[order[1]], cur_seq_len - split)
+
+        # Draw indicator tokens from normal distribution centered around middle of sequence
+        idx_one = get_indicator_idx(cur_seq_len, k_indicator)
+        idx_two = get_indicator_idx(cur_seq_len, k_indicator)
+        if idx_one == idx_two:
+            idx_two += np.random.choice([-1, 1])
 
         sequence[idx_one] = np.random.choice(indicators)
         sequence[idx_two] = np.random.choice(indicators)
 
-        # Compute ground truth
-        first = sequence[idx_one]
-        second = sequence[idx_two]
-        if first == second:
-            label += halved_num_labels
+        # Compute label
+        if sequence[idx_one] == sequence[idx_two]:
+            label += len(orders)
 
+        # Pad sequence
         sequence = sequence + ['PAD'] * (seq_len - len(sequence))
 
         examples[_] = sequence
@@ -79,6 +77,10 @@ def generate_dataset8(*, seq_len, num_examples, grammars, num_labels, num_subseq
         labels[_] = label
 
     return examples, labels
+
+
+def get_indicator_idx(cur_seq_len, k):
+    return np.clip(int(np.random.normal(cur_seq_len // 2, cur_seq_len * k)), 1, cur_seq_len - 2)
 
 
 def get_split(dataset, *, batch_size=32, validation_split=0.1, seed=42):
