@@ -34,8 +34,6 @@ def main():
     model_out_path = args.model_out_path
     model = args.model
 
-    persist_results = False
-
     if out_path is not None and not os.path.exists(out_path):
         create_file(out_path)
 
@@ -94,28 +92,6 @@ def main():
         model, train_dataloader, val_dataloader, train_config.num_epochs, loss_fn, train_config.learning_rate, early_stopping=train_config.early_stopping)
 
     torch.save(model, f"{config.name}_{model_out_path}")
-
-    # (6) Store Results
-
-    if persist_results:
-        # Create the new row and update the fields for MinGRU
-        next_row = get_new_row()
-        next_row['Model'] = config.name
-        next_row['Layers'] = config.num_layers
-        next_row['Parameters'] = num_parameters
-        next_row['Sequence Length'] = dataset_config.sequence_length
-        next_row['Dataset Size'] = len(train_dataset)
-        next_row['Token Distance'] = 'N/A'
-        next_row['Start'] = dataset_config.start
-        next_row['End'] = dataset_config.end
-        next_row['Training Steps'] = steps
-        next_row['Number of Epochs'] = total_epochs
-        next_row['Training Time'] = avg_time_per_step
-        next_row['Memory Per Epoch'] = 'TODO'
-        next_row['Validation Accuracy'] = validation_accuracy
-        next_row['Validation Loss'] = total_loss
-
-        append_line(out_path, next_row)
 
 
 if __name__ == '__main__':
