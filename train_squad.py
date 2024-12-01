@@ -57,7 +57,6 @@ model = MinGRUSquadQA(config)
 model.to(device)
 
 train_loader, val_loader = get_squad_v2_dataloaders(tokenizer, batch_size=B)
-import pdb; pdb.set_trace()
 if use_compile:
     model = torch.compile(model)
 
@@ -86,12 +85,13 @@ for i in range(epochs):
             batch["answer_end_idx"].to(device).view(-1, 1) # [batch_size, 1]
         )
         y = torch.cat([answer_start_idx, answer_end_idx], dim=-1) # [batch_size, 2]
+        mask = (x == tokenizer.pad_token_id)
         if ampere_gpu:
             # mixed precision training
             with torch.autocast(device_type="cuda", dtype=torch.bfloat16):
-                logits, loss = model(x, y)
+                logits, loss = model(x, targets=y, mask=mask)
         else:
-            logits, loss = model(x, y)
+            logits, loss = model(x, targets=y, mask=mask)
         loss_accum += loss.detach()
         loss.backward()
         optimizer.step()
@@ -124,12 +124,13 @@ for i in range(epochs):
                 batch["answer_end_idx"].to(device).view(-1, 1) # [batch_size, 1]
             )
             y = torch.cat([answer_start_idx, answer_end_idx], dim=-1) # [batch_size, 2]
+            mask = (x == tokenizer.pad_token_id)
             if ampere_gpu:
                 # mixed precision training
                 with torch.autocast(device_type="cuda", dtype=torch.bfloat16):
-                    logits, loss = model(x, y)
+                    logits, loss = model(x, targets=y, mask=mask)
             else:
-                logits, loss = model(x, y)
+                logits, loss = model(x, targets=y, mask=mask)
             val_loss_accum += loss.detach()
         
         avg_val_loss = val_loss_accum / len(val_loader)

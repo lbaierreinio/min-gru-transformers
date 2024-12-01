@@ -22,8 +22,8 @@ class MinGRULayer(nn.Module):
         self.ln_2 = nn.LayerNorm(config.hidden_dim)
         self.mlp = nn.Linear(config.hidden_dim, config.hidden_dim)
 
-    def forward(self, x):
-        x = x + self.minGRU(self.ln_1(x))
+    def forward(self, x, mask=None):
+        x = x + self.minGRU(self.ln_1(x), mask=mask)
         x = x + self.mlp(self.ln_2(x))
         return x
 
@@ -46,30 +46,40 @@ class MinGRUSquadQA(nn.Module):
             nn.Linear(config.classification_head_dim, 2)
         )
 
-    def forward(self, x, targets=None):
+    def forward(self, x, targets=None, mask=None):
         B, T = x.shape
 
         x = self.encoder.wte(x) # (B, T, dim_hidden)
         # forward through layers of minGRU
         for layer in self.encoder.layers:
-            x = layer(x) # (B, T, dim_hidden)
+            x = layer(x, mask) # (B, T, dim_hidden)
         # final layernorm and classifier
         x = self.encoder.ln_f(x) # (B, T, dim_hidden)
         logits = self.head(x) # (B, T, 2)
 
-        loss = self.loss(logits, targets) if targets is not None else None
+        loss = self.loss(logits, targets, mask) if targets is not None else None
         return logits, loss
 
-    def loss(self, logits, targets):
+    def loss(self, logits, targets, mask=None):
         """Sum of cross entropy of start and end positions, weighed equally.
 
         Inputs:
         - logits [B, T, 2]: each [T, 2] item is a pair of logits for the start and end position for each token in the sequence
         - targets: [B, 2]: the correct start and end positions for each example
+        - mask (optional): torch.Tensor [batch_size, seq_len]
+        
+        NOTE: mask is True for positions that should be masked out, False everywhere else
         """
-
         start_pos_logits = logits[:,:,0]
         start_pos_targets = targets[:,0]
         end_pos_logits = logits[:,:,1]
         end_pos_targets = targets[:, 1]
+
+        if mask is not None:
+            # Set the logits for the masked positions to -inf. This will ensure that
+            # they have no contribution in the cross entropy loss, since they will
+            # be fed into a softmax first.
+            start_pos_logits = start_pos_logits.masked_fill(mask, float("-inf"))
+            end_pos_logits = end_pos_logits.masked_fill(mask, float("-inf"))
+    
         return F.cross_entropy(start_pos_logits, start_pos_targets) + F.cross_entropy(end_pos_logits, end_pos_targets)
