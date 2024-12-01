@@ -37,7 +37,7 @@ def main():
 
     # (4) Define Model and Configuration
 
-    model = torch.load(model_in_path, weights_only=True).cuda()
+    model = torch.load(model_in_path).cuda()
     loss_fn = torch.nn.CrossEntropyLoss()
 
     num_parameters = sum(p.numel() for p in model.parameters())

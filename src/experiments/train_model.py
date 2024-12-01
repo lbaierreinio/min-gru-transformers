@@ -93,7 +93,7 @@ def main():
     validation_accuracy, total_loss, steps, total_epochs, avg_time_per_step = train(
         model, train_dataloader, val_dataloader, train_config.num_epochs, loss_fn, train_config.learning_rate, early_stopping=train_config.early_stopping)
 
-    torch.save(model, config.name + model_out_path)
+    torch.save(model, f"{config.name}_{model_out_path}")
 
     # (6) Store Results
 
