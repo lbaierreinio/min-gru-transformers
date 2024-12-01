@@ -7,9 +7,10 @@ def evaluate(model, dataloader, loss_fn, evaluation_type='Validation'):
         model.eval()
         total_loss = 0.
         total_correct = 0.
+        device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
         for batch in dataloader:
-            input = batch['input_ids'].cuda()
-            labels = batch['labels'].cuda()
+            input = batch['input_ids'].to(device)
+            labels = batch['labels'].to(device)
             output = model(input)
 
             # Total loss
@@ -31,12 +32,13 @@ def train(model, train_dataloader, val_dataloader, num_epochs, loss_fn, learning
     optimizer = torch.optim.Adam(model.parameters(), lr=learning_rate)
     steps = 0
     total_time = 0
+    device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
     for epoch in range(0, num_epochs+1):
         model.train()
         total_loss = 0.0
         for batch in train_dataloader:
-            input = batch['input_ids'].cuda()
-            labels = batch['labels'].cuda()
+            input = batch['input_ids'].to(device)
+            labels = batch['labels'].to(device)
 
             start = time.time()  # TODO: Verify this is a good way to measure time b/c batch size might not necessarily always be the same(?)
             optimizer.zero_grad()

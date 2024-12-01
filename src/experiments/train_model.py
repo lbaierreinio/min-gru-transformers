@@ -4,7 +4,6 @@ import argparse
 from transformers import AutoTokenizer
 from datasets.utility import get_split
 from train.utility import train
-from torch.utils.data import DataLoader
 from experiments.dataset_config import DatasetConfig
 from experiments.train_config import TrainConfig
 from experiments.mingru_config import MinGRUConfig
@@ -28,6 +27,8 @@ def main():
 
     args = parser.parse_args()
 
+    device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+
     train_dataset_path = args.train_dataset_path
     out_path = args.out_path
     model_out_path = args.model_out_path
@@ -35,7 +36,7 @@ def main():
 
     persist_results = False
 
-    if not os.path.exists(out_path):
+    if out_path is not None and not os.path.exists(out_path):
         create_file(out_path)
 
     if train_dataset_path is None:
@@ -84,7 +85,7 @@ def main():
             ffn_num_hiddens=config.ffn_num_hiddens,
             chunk_size=config.chunk_size,
             max_len=dataset_config.sequence_length,
-        ).cuda()
+        ).to(device)
 
     num_parameters = sum(p.numel() for p in model.parameters())
 
