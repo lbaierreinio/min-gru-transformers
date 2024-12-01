@@ -10,7 +10,6 @@ from experiments.mingru_config import MinGRUConfig
 from experiments.transformer_config import TransformerConfig
 from models.MinGRUClassifier import MinGRUClassifier
 from models.LongTransformerClassifier import LongTransformerClassifier
-from utils.utility import get_new_row, create_file, append_line
 
 
 def main():
@@ -18,8 +17,6 @@ def main():
     parser = argparse.ArgumentParser()
     parser.add_argument('--train_dataset_path', type=str,
                         help='Training dataset path')
-    parser.add_argument('--out_path', type=str,
-                        help='Path to save the results to')
     parser.add_argument('--model_out_path', type=str,
                         help='Path to save the model to')
     parser.add_argument('--model', type=int,
@@ -30,12 +27,8 @@ def main():
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
     train_dataset_path = args.train_dataset_path
-    out_path = args.out_path
     model_out_path = args.model_out_path
     model = args.model
-
-    if out_path is not None and not os.path.exists(out_path):
-        create_file(out_path)
 
     if train_dataset_path is None:
         raise ValueError("Paths must be specified")
@@ -70,7 +63,7 @@ def main():
             expansion_factor=config.expansion_factor,
             num_layers=config.num_layers,
             bidirectional=config.bidirectional,
-            num_classes=dataset_config.num_labels,
+            num_classes=train_config.num_classes,
         ).cuda()
     else:
         config = TransformerConfig()
@@ -78,7 +71,7 @@ def main():
             vocab_size=vocab_size,
             num_heads=config.num_heads,
             num_layers=config.num_layers,
-            num_classes=dataset_config.num_labels,
+            num_classes=train_config.num_classes,
             num_hiddens=config.num_hiddens,
             ffn_num_hiddens=config.ffn_num_hiddens,
             chunk_size=config.chunk_size,
@@ -91,7 +84,7 @@ def main():
     validation_accuracy, total_loss, steps, total_epochs, avg_time_per_step = train(
         model, train_dataloader, val_dataloader, train_config.num_epochs, loss_fn, train_config.learning_rate, early_stopping=train_config.early_stopping)
 
-    torch.save(model, f"{config.name}_{model_out_path}")
+    torch.save(model, f"{model_out_path}_{config.name}.pt")
 
 
 if __name__ == '__main__':

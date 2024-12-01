@@ -7,7 +7,7 @@ class MinGRUConfig:
     Configuration for minGRU model.
     """
     name: str = 'mingru'
-    embedding_dim: int = 128
-    expansion_factor: float = 1.5
-    num_layers: int = 4
+    embedding_dim: int = 256
+    expansion_factor: float = 2.5
+    num_layers: int = 3
     bidirectional: bool = True

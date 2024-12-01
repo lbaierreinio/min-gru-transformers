@@ -47,8 +47,8 @@ def main():
     examples, labels = generate_dataset8(
         seq_len=config.sequence_length,
         num_examples=config.num_examples,
-        alpha=config.alpha
-        beta=config.alpha,
+        alpha=config.alpha,
+        beta=config.beta,
         k_split=config.k_split,
         k_indicator=config.k_indicator,
         grammars=grammars,
