@@ -1,5 +1,4 @@
 from torch import nn
-from layers.rnn.RNN import RNN
 from layers.rnn.MinGRUBlock import MinGRUBlock
 
 
