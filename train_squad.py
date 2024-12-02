@@ -2,14 +2,15 @@ import os
 import time
 
 import torch
+from evaluate import load
 from transformers import AutoTokenizer
 from transformers import get_cosine_schedule_with_warmup
 from tqdm import tqdm
 
 from models.MinGRUSquadQA import MinGRUSquadQA, MinGRUSquadQAConfig
-from utils.squad_dataloader import get_squad_v2_dataloaders
+from utils.squad_dataloader import get_squad_v2_dataloaders, get_squad_v2_validation_references
 
-# TODO: may want to dograident accumulation
+# TODO: may want to do graident accumulation
 # TODO: explore GRU bidirectionality
 # TODO: may want to checkpoint model at the end (/ between epochs)
 # ########################################################
@@ -57,6 +58,8 @@ model = MinGRUSquadQA(config)
 model.to(device)
 
 train_loader, val_loader = get_squad_v2_dataloaders(tokenizer, batch_size=B)
+references = get_squad_v2_validation_references()
+squad_metric = load("squad_v2")
 if use_compile:
     model = torch.compile(model)
 
@@ -89,6 +92,68 @@ def forward_batch(batch):
         logits, loss = model(x, targets=y, mask=mask)
 
     return logits, loss
+
+
+def get_predictions(batch, logits):
+    """
+    Given [B,T,2] tensor of logits representing the scores for each start position
+    and end position, return the best overall prediction, while ensuring
+    that the selected range is valid.
+
+    Adhere to the format described in https://huggingface.co/spaces/evaluate-metric/squad_v2
+    for the outputs.
+    """
+    ids = batch["id"]
+    input_ids = batch["input_ids"]
+    B, T = input_ids.shape
+
+    start_logits, end_logits = logits[:,:,0], logits[:,:,1] # [B, T]
+    top_k = 20 # only consider best top_k logits for efficiency
+
+    top_start_scores, top_start_indices = torch.topk(start_logits, k=top_k, dim=1)
+    top_end_scores, top_end_indices = torch.topk(end_logits, k=top_k, dim=1)
+
+    predictions = []
+    for b in range(B):
+        # Compute all pairwise scores between the top k best start/end positions and take the best
+        # Use "no answer" prediction as default value
+        max_score = start_logits[b, 0] + end_logits[b, 0]
+        best_range = (0, 0)
+        for i in range(len(top_start_indices)):
+            for j in range(len(top_end_indices)):
+                start_idx = top_start_indices[b, i].item()
+                end_idx = top_end_indices[b, j].item()
+                # Do not consider predictions with invalid start/end position combinations
+                if end_idx <= start_idx:
+                    continue
+                # Do not consider predictions that lie outside context
+                # NOTE: token_type_ids will be a list of 0s (tokens corresponding to question), followed by
+                #       a list of 1s (tokens corresponding to context), again followed by a list of 0s (padding)
+                context_start_idx = 0
+                while batch["token_type_ids"][b][context_start_idx] == 0:
+                    context_start_idx += 1
+                context_end_idx = T - 1
+                while batch["token_type_ids"][b][context_end_idx] == 0:
+                    context_end_idx -= 1
+                if not(
+                    (context_start_idx <= start_idx <= context_end_idx) and
+                    (context_start_idx <= end_idx <= context_end_idx)
+                ):
+                    continue
+
+                # 
+                score = top_start_scores[b, i]= + top_end_scores[b, j]
+                if score > max_score:
+                    max_score = score
+                    best_range = (start_idx, end_idx)
+        if best_range == (0,0):
+            prediction = {"id": ids[b], "prediction_text": "", "no_answer_probability": 1.0}
+        else:
+            prediction_text = tokenizer.decode(input_ids[b][best_range[0]:best_range[1]+1])
+            prediction = {"id": ids[b], "prediction_text": prediction_text, "no_answer_probability": 0.}
+        predictions.append(prediction)
+
+    return predictions
 
 
 for i in range(epochs):
@@ -124,11 +189,18 @@ for i in range(epochs):
     model.eval()
     with torch.no_grad():
         val_loss_accum = 0.0
+
+        # As we're iterating through the batch, get predictions in the format {"id": ..., "prediction": ...}
+        predictions = []
         for batch in tqdm(val_loader):
             logits, loss = forward_batch(batch)
             val_loss_accum += loss.detach()
+            predictions.extend(get_predictions(batch, logits))
         
         avg_val_loss = val_loss_accum / len(val_loader)
-        epoch_metrics = f"[Val] Epoch {i:4d} | val_loss {val_loss_accum.item():.4f}"
+        results = squad_metric.compute(predictions=predictions, references=references)
+        em, f1 = results["exact"], results["f1"]
+        epoch_metrics = f"[Val] Epoch {i:4d} | val_loss: {val_loss_accum.item():.4f} | exact_math: {em:.4f} | F1: {f1:.4f}"
+        print(epoch_metrics)
         with open(log_file, "a") as f:
             f.write(f"{epoch_metrics}\n")
