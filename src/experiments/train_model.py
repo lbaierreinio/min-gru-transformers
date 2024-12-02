@@ -8,7 +8,7 @@ from experiments.dataset_config import DatasetConfig
 from experiments.train_config import TrainConfig
 from experiments.mingru_config import MinGRUConfig
 from experiments.transformer_config import TransformerConfig
-from models.MinGRUClassifier import MinGRUClassifier
+from models.MinGRUSynthetic import MinGRUSynthetic
 from models.LongTransformerClassifier import LongTransformerClassifier
 
 
@@ -57,10 +57,9 @@ def main():
 
     if model == 0:
         config = MinGRUConfig()
-        model = MinGRUClassifier(
+        model = MinGRUSynthetic(
             vocab_size=vocab_size,
             embedding_dim=config.embedding_dim,
-            expansion_factor=config.expansion_factor,
             num_layers=config.num_layers,
             bidirectional=config.bidirectional,
             num_classes=train_config.num_classes,
