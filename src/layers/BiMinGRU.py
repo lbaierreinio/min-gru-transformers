@@ -14,7 +14,7 @@ class BiMinGRU(nn.Module):
     mask_reversed = mask.flip(dims=[1])
     out_forward = self.forward_rnn(x)
     out_backward = self.backward_rnn(x_reversed, mask_reversed)
-    concat = torch.cat((out_forward, out_backward), dim=2)
+    concat = torch.cat((out_forward, out_backward.flip(dims=[1])), dim=2)
     out = self.linear(concat)
 
     return out
