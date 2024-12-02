@@ -1,8 +1,8 @@
 import torch
 import argparse
 from transformers import AutoTokenizer
-from datasets.utility import generate_dataset8
-from datasets.SyntheticDataset import SyntheticDataset
+from datasets.synthetic.utility import generate_dataset8
+from datasets.synthetic.SyntheticDataset import SyntheticDataset
 from experiments.dataset_config import DatasetConfig
 
 """

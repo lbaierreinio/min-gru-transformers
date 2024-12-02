@@ -2,7 +2,7 @@ import os
 import torch
 import argparse
 from transformers import AutoTokenizer
-from datasets.utility import get_split
+from datasets.synthetic.utility import get_split
 from train.utility import train
 from experiments.dataset_config import DatasetConfig
 from experiments.train_config import TrainConfig
@@ -15,7 +15,7 @@ from models.LongTransformerClassifier import LongTransformerClassifier
 def main():
     # (1) Retrieve arguments from the command line
     parser = argparse.ArgumentParser()
-    parser.add_argument('--train_dataset_path', type=str,
+    parser.add_argument('--dataset_path', type=str,
                         help='Training dataset path')
     parser.add_argument('--model_out_path', type=str,
                         help='Path to save the model to')
@@ -26,17 +26,17 @@ def main():
 
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
-    train_dataset_path = args.train_dataset_path
+    dataset_path = args.dataset_path
     model_out_path = args.model_out_path
     model = args.model
 
-    if train_dataset_path is None:
+    if dataset_path is None:
         raise ValueError("Paths must be specified")
 
     if model not in [0, 1]:
         raise ValueError("Model must be 0 or 1")
 
-    if not os.path.exists(train_dataset_path):
+    if not os.path.exists(dataset_path):
         raise ValueError("Path must point to a valid file")
 
     # (2) Load Dataset
@@ -45,8 +45,8 @@ def main():
     tokenizer = AutoTokenizer.from_pretrained(
         dataset_config.tokenizer, model_max_length=dataset_config.sequence_length)
 
-    train_dataset = torch.load(train_dataset_path)
-    train_dataloader, val_dataloader = get_split(train_dataset)
+    dataset = torch.load(dataset_path)
+    train_dataloader, val_dataloader = get_split(dataset)
 
     # (3) Load Training Parameters
     train_config = TrainConfig()
@@ -64,7 +64,7 @@ def main():
             num_layers=config.num_layers,
             bidirectional=config.bidirectional,
             num_classes=train_config.num_classes,
-        ).cuda()
+        ).to(device)
     else:
         config = TransformerConfig()
         model = LongTransformerClassifier(
@@ -81,8 +81,8 @@ def main():
     num_parameters = sum(p.numel() for p in model.parameters())
 
     # (5) Train Model
-    validation_accuracy, total_loss, steps, total_epochs, avg_time_per_step = train(
-        model, train_dataloader, val_dataloader, train_config.num_epochs, loss_fn, train_config.learning_rate, early_stopping=train_config.early_stopping)
+    validation_accuracy, total_validation_loss, steps, total_epochs, avg_time_per_step = train(
+        model, train_dataloader, val_dataloader, train_config.num_epochs, loss_fn, train_config.learning_rate, early_stopping_threshold=train_config.early_stopping_threshold)
 
     torch.save(model, f"{model_out_path}_{config.name}.pt")
 

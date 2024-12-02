@@ -1,6 +1,5 @@
 import os
 import pandas as pd
-import torch.nn.functional as F
 
 
 def create_file(path):
@@ -24,16 +23,16 @@ def append_line(path, data):
 
 def get_new_row():
     new_row = {
-        'Model': 'GPT-4',
-        'Layers': 24,
-        'Parameters': '1.7B',
-        'Sequence Length': 1024,
-        'Dataset Size': 10000,
-        'Training Steps': 1,
-        'Number of Epochs': 1,
-        'Training Time': 120,
-        'Memory Per Epoch': '10GB',
-        'Validation Accuracy': 0.9,
-        'Validation Loss': 0.1
+        'Model': None,
+        'Layers': None,
+        'Parameters': None,
+        'Sequence Length': None,
+        'Dataset Size': None,
+        'Training Steps': None,
+        'Number of Epochs': None,
+        'Training Time': None,
+        'Memory Per Epoch': None,
+        'Validation Accuracy': None,
+        'Validation Loss': None
     }
     return new_row

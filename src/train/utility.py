@@ -28,12 +28,12 @@ def evaluate(model, dataloader, loss_fn, evaluation_type='Validation'):
         return total_loss, accuracy
 
 
-def train(model, train_dataloader, val_dataloader, num_epochs, loss_fn, learning_rate, *, early_stopping=False):
+def train(model, train_dataloader, val_dataloader, num_epochs, loss_fn, learning_rate, *, early_stopping_threshold=None):
     optimizer = torch.optim.Adam(model.parameters(), lr=learning_rate)
     steps = 0
     total_time = 0
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
-    for epoch in range(0, num_epochs+1):
+    for epoch in range(1, num_epochs+1):
         model.train()
         total_loss = 0.0
         for batch in train_dataloader:
@@ -45,8 +45,9 @@ def train(model, train_dataloader, val_dataloader, num_epochs, loss_fn, learning
             output = model(input)
             loss = loss_fn(output, labels)
             loss.backward()
-            total_loss += loss.item()
             optimizer.step()
+            if torch.cuda.is_available():
+                torch.cuda.synchronize()
             end = time.time()
             total_time += (end - start)
             steps += 1
@@ -57,7 +58,7 @@ def train(model, train_dataloader, val_dataloader, num_epochs, loss_fn, learning
             print(f"Training Loss: {round(total_loss, 4)}")
             total_loss, accuracy = evaluate(
                 model, val_dataloader, loss_fn, 'Validation')
-            if early_stopping and accuracy > 0.95:
+            if early_stopping_threshold is not None and accuracy >= early_stopping_threshold:
                 print(f"Early stopping at epoch {epoch}")
                 return total_loss, accuracy, steps, epoch, (total_time / steps)
             print('\n\n')

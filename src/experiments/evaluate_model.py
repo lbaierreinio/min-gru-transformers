@@ -19,6 +19,8 @@ def main():
 
     args = parser.parse_args()
 
+    device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+
     validation_dataset_path = args.validation_dataset_path
     model_in_path = args.model_in_path
     out_path = args.out_path
@@ -32,32 +34,26 @@ def main():
     # (2) Load Dataset
     dataset_config = DatasetConfig()
 
-    train_dataset = torch.load(validation_dataset_path)
-    train_dataloader = DataLoader(train_dataset, batch_size=32)
+    validation_dataset_path = torch.load(validation_dataset_path)
+    validation_dataloader = DataLoader(validation_dataset_path, batch_size=32)
 
     # (4) Define Model and Configuration
 
-    model = torch.load(model_in_path).cuda()
+    model = torch.load(model_in_path).to(device)
     loss_fn = torch.nn.CrossEntropyLoss()
 
     num_parameters = sum(p.numel() for p in model.parameters())
 
     total_loss, validation_accuracy = evaluate(
-        model, train_dataloader, loss_fn, evaluation_type='Validation')
+        model, validation_dataloader, loss_fn, evaluation_type='Validation')
 
     # (6) Store Results
     next_row = get_new_row()
 
-    # Create the new row and update the fields for MinGRU
-    next_row['Model'] = 'N/A'
-    next_row['Layers'] = 'N/A'
+    # Create the new row and update the fields for MinGRU (TODO: Add more fields as needed)
     next_row['Parameters'] = num_parameters
     next_row['Sequence Length'] = dataset_config.sequence_length
     next_row['Dataset Size'] = dataset_config.num_examples
-    next_row['Training Steps'] = 'N/A'
-    next_row['Number of Epochs'] = 'N/A'
-    next_row['Training Time'] = 'N/A'
-    next_row['Memory Per Epoch'] = 'TODO'
     next_row['Validation Accuracy'] = validation_accuracy
     next_row['Validation Loss'] = total_loss
 

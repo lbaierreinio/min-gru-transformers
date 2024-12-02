@@ -10,3 +10,4 @@ class TrainConfig:
     num_epochs: int = 500
     early_stopping: bool = True
     num_classes: int = 8
+    early_stopping_threshold: float = 0.95
