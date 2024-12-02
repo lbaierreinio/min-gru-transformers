@@ -3,8 +3,7 @@ from dataclasses import dataclass
 import torch.nn as nn
 from torch.nn import functional as F
 
-from layers.MinGRU import MinGRU
-
+from layers.MinGRUBlock import MinGRUBlock
 
 @dataclass
 class MinGRUSquadQAConfig:
@@ -12,20 +11,6 @@ class MinGRUSquadQAConfig:
     n_layer: int = 12
     hidden_dim: int = 768
     classification_head_dim: int = 768
-
-
-class MinGRULayer(nn.Module):
-    def __init__(self, config):
-        super().__init__()
-        self.ln_1 = nn.LayerNorm(config.hidden_dim)
-        self.minGRU = MinGRU(config.hidden_dim, config.hidden_dim)
-        self.ln_2 = nn.LayerNorm(config.hidden_dim)
-        self.mlp = nn.Linear(config.hidden_dim, config.hidden_dim)
-
-    def forward(self, x, mask=None):
-        x = x + self.minGRU(self.ln_1(x), mask=mask)
-        x = x + self.mlp(self.ln_2(x))
-        return x
 
 
 class MinGRUSquadQA(nn.Module):
@@ -36,7 +21,7 @@ class MinGRUSquadQA(nn.Module):
         # Produce contextualized embeddings for each sequence element
         self.encoder = nn.ModuleDict(dict(
             wte = nn.Embedding(config.vocab_size, config.hidden_dim),
-            layers = nn.ModuleList(MinGRULayer(config) for _ in range(config.n_layer)),
+            layers = nn.ModuleList(MinGRUBlock(config.hidden_dim) for _ in range(config.n_layer)),
             ln_f = nn.LayerNorm(config.hidden_dim),
         ))
         # Project each embedding into 2D space representing [start_prob, end_prod]
