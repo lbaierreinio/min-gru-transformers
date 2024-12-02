@@ -9,7 +9,7 @@ class LongTransformerMinGRUEncoder(nn.Module):
         self.num_hiddens = num_hiddens
         self.chunk_size = chunk_size
 
-        # Embedding & Encoding
+        # Embedding & Encoding layers
         self.embedding = nn.Embedding(vocab_size, num_hiddens)
 
         # Encoder Layers

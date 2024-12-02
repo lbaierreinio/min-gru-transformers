@@ -20,7 +20,7 @@ class TransformerMinGRUEncoderBlock(nn.Module):
         x = self.pos_encoder(x)
         batch_size, seq_len, num_hiddens = x.shape
 
-        # Compute number of chunks
+        # Compute total number of chunks
         num_chunks = int(seq_len // self.chunk_size)
 
         x_chunks = x.view(batch_size, num_chunks,
