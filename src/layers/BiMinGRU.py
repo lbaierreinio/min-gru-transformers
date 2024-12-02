@@ -9,10 +9,11 @@ class BiMinGRU(nn.Module):
     self.backward_rnn = MinGRU(dim_in, dim_hidden)
     self.linear = nn.Linear(2 * dim_hidden, dim_hidden)
   
-  def forward(self, x):
+  def forward(self, x, mask):
     x_reversed = x.flip(dims=[1])
+    mask_reversed = mask.flip(dims=[1])
     out_forward = self.forward_rnn(x)
-    out_backward = self.backward_rnn(x_reversed)
+    out_backward = self.backward_rnn(x_reversed, mask_reversed)
     concat = torch.cat((out_forward, out_backward), dim=2)
     out = self.linear(concat)
 
