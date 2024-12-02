@@ -9,7 +9,7 @@ from experiments.train_config import TrainConfig
 from experiments.mingru_config import MinGRUConfig
 from experiments.transformer_config import TransformerConfig
 from models.MinGRUSynthetic import MinGRUSynthetic
-from models.LongTransformerClassifier import LongTransformerClassifier
+from models.TransformerSynthetic import TransformerSynthetic
 
 
 def main():
@@ -66,7 +66,7 @@ def main():
         ).to(device)
     else:
         config = TransformerConfig()
-        model = LongTransformerClassifier(
+        model = TransformerSynthetic(
             vocab_size=vocab_size,
             num_heads=config.num_heads,
             num_layers=config.num_layers,
