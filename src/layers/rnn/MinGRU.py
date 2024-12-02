@@ -44,7 +44,7 @@ class MinGRU(nn.Module):
         """
         return torch.where(x >= 0, torch.log(F.relu(x)+0.5), -F.softplus(-x))
 
-    def forward(self, x, h_prev=None):
+    def forward(self, x, h_prev=None, mask=None):
         """
         Compute the forward pass. Note that if h_prev is not none,
         then we assume the model is processing tokens sequentially.
@@ -52,10 +52,14 @@ class MinGRU(nn.Module):
         the sequence length should be 1. In parallel mode, the
         sequence length should be greater than 1. We return the
         output of the RNN and the hidden state if return_hidden is True.
+
+        If mask is provided, mask out the hidden states corresponding to the True positions
+        in the mask (this is used to mask out padding tokens in the sequence).
+
         Args:
             x: torch.Tensor [batch_size, seq_len, dim_in]
             h_prev (optional): torch.Tensor [batch_size, seq_len, dim_hidden]
-
+            mask (optional): torch.Tensor [batch_size, seq_len]
         Returns:
             h: torch.Tensor [batch_size, seq_len, dim_hidden]
         """
@@ -75,5 +79,11 @@ class MinGRU(nn.Module):
             log_tilde_h = self.log_g(tilde_h)  # Log candidate state
             h = self.parallel_scan_log(
                 log_one_minus_z, log_z + log_tilde_h)  # Hidden states
+
+            if mask is not None:
+                mask = mask.unsqueeze(-1) # [batch_size, seq_len, 1]
+                # NOTE: because minGRU computes hidden states sequentially (unlike attention)
+                #       if suffices to mask out the irrelevant hidden states to 0
+                h = h.masked_fill(mask, 0)
 
         return h
