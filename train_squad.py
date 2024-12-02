@@ -71,6 +71,26 @@ optimizer = torch.optim.AdamW(model.parameters(), lr=1e-4, fused=use_fused)
 num_training_steps = epochs * len(train_loader)  # Total number of steps
 scheduler = get_cosine_schedule_with_warmup(optimizer, num_warmup_steps=warmup_steps, num_training_steps=num_training_steps)
 
+
+def forward_batch(batch):
+    # Given a batch, format the data and forward through model to get logits and loss
+    x, answer_start_idx, answer_end_idx = (
+        batch["input_ids"].to(device), # [batch_size, sequence_length]
+        batch["answer_start_idx"].to(device).view(-1, 1), # [batch_size, 1]
+        batch["answer_end_idx"].to(device).view(-1, 1) # [batch_size, 1]
+    )
+    y = torch.cat([answer_start_idx, answer_end_idx], dim=-1) # [batch_size, 2]
+    mask = (x == tokenizer.pad_token_id)
+    if ampere_gpu:
+        # mixed precision training
+        with torch.autocast(device_type="cuda", dtype=torch.bfloat16):
+            logits, loss = model(x, targets=y, mask=mask)
+    else:
+        logits, loss = model(x, targets=y, mask=mask)
+
+    return logits, loss
+
+
 for i in range(epochs):
     t0 = time.time()
     # optimize
@@ -79,24 +99,11 @@ for i in range(epochs):
     tokens_processed = 0
     for batch in tqdm(train_loader):
         optimizer.zero_grad()
-        x, answer_start_idx, answer_end_idx = (
-            batch["input_ids"].to(device), # [batch_size, sequence_length]
-            batch["answer_start_idx"].to(device).view(-1, 1), # [batch_size, 1]
-            batch["answer_end_idx"].to(device).view(-1, 1) # [batch_size, 1]
-        )
-        y = torch.cat([answer_start_idx, answer_end_idx], dim=-1) # [batch_size, 2]
-        mask = (x == tokenizer.pad_token_id)
-        if ampere_gpu:
-            # mixed precision training
-            with torch.autocast(device_type="cuda", dtype=torch.bfloat16):
-                logits, loss = model(x, targets=y, mask=mask)
-        else:
-            logits, loss = model(x, targets=y, mask=mask)
+        logits, loss = forward_batch(batch)
         loss_accum += loss.detach()
         loss.backward()
         optimizer.step()
         scheduler.step()
-
         tokens_processed += x.shape[0] * x.shape[1] # batch_size * sequence_length
         
     # Print/Log training metrics
@@ -118,19 +125,7 @@ for i in range(epochs):
     with torch.no_grad():
         val_loss_accum = 0.0
         for batch in tqdm(val_loader):
-            x, answer_start_idx, answer_end_idx = (
-                batch["input_ids"].to(device), # [batch_size, sequence_length]
-                batch["answer_start_idx"].to(device).view(-1, 1), # [batch_size, 1]
-                batch["answer_end_idx"].to(device).view(-1, 1) # [batch_size, 1]
-            )
-            y = torch.cat([answer_start_idx, answer_end_idx], dim=-1) # [batch_size, 2]
-            mask = (x == tokenizer.pad_token_id)
-            if ampere_gpu:
-                # mixed precision training
-                with torch.autocast(device_type="cuda", dtype=torch.bfloat16):
-                    logits, loss = model(x, targets=y, mask=mask)
-            else:
-                logits, loss = model(x, targets=y, mask=mask)
+            logits, loss = forward_batch(batch)
             val_loss_accum += loss.detach()
         
         avg_val_loss = val_loss_accum / len(val_loader)
