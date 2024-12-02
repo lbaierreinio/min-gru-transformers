@@ -169,7 +169,7 @@ for i in range(epochs):
         loss.backward()
         optimizer.step()
         scheduler.step()
-        tokens_processed += x.shape[0] * x.shape[1] # batch_size * sequence_length
+        tokens_processed += batch["input_ids"].shape[0] * batch["input_ids"].shape[1] # batch_size * sequence_length
         
     # Print/Log training metrics
     if torch.cuda.is_available():
