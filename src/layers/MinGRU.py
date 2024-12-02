@@ -74,12 +74,12 @@ class MinGRU(nn.Module):
             log_z = -F.softplus(-k) # Log (z)
             log_one_minus_z = -F.softplus(k) # Log (1 - z)
             log_tilde_h = self.log_g(tilde_h) # Log candidate state
-            h = self.parallel_scan_log(log_one_minus_z, log_z + log_tilde_h) # Hidden states
 
-            if mask is not None:
-                mask = mask.unsqueeze(-1) # [batch_size, seq_len, 1]
-                # NOTE: because minGRU computes hidden states sequentially (unlike attention)
-                #       if suffices to mask out the irrelevant hidden states to 0
-                h = h.masked_fill(mask, 0)
+            mask = mask.unsqueeze(-1)
+            log_one_minus_z = h.masked_fill(mask, 0)
+            log_tilde_h = h.masked_fill(mask, 0)
+            log_one_minus_z = h.masked_fill(mask, 0)
+
+            h = self.parallel_scan_log(log_one_minus_z, log_z + log_tilde_h) # Hidden states
 
         return h
