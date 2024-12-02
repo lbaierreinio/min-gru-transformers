@@ -2,15 +2,29 @@ import torch
 import argparse
 from transformers import AutoTokenizer
 from datasets.synthetic.utility import generate_dataset8
-from datasets.synthetic.SyntheticDataset import SyntheticDataset
-from experiments.dataset_config import DatasetConfig
+from datasets.synthetic.TransformerSyntheticDataset import TransformerSyntheticDataset
+
+from dataclasses import dataclass
+
+
+@dataclass
+class DatasetConfig:
+    """
+    Configuration of the experiment.
+    """
+    sequence_length: int = 2000
+    num_examples: int = 101
+    tokenizer: str = 'bert-base-uncased'
+    alpha: int = 1
+    beta: int = 4
+    k_split: float = 0.05
+    k_indicator: float = 0.1
+    pre_padding: bool = False
 
 """
 Script to generate and save a synthetic dataset given the current state
 of the dataset configuration file.
 """
-
-
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument('--dataset_path', type=str,
@@ -26,6 +40,8 @@ def main():
 
     tokenizer = AutoTokenizer.from_pretrained(
         config.tokenizer, model_max_length=config.sequence_length)
+
+    tokenizer.padding_side = "left" if config.pre_padding else "right"
 
     grammars = [
         {
@@ -54,7 +70,7 @@ def main():
         grammars=grammars,
     )
 
-    dataset = SyntheticDataset(
+    dataset = TransformerSyntheticDataset(
         examples, labels, tokenizer, config.sequence_length)
 
     torch.save(dataset, dataset_path)

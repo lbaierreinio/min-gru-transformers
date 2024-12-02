@@ -2,8 +2,12 @@ from torch.utils.data import Dataset
 import torch
 
 
-class SyntheticDataset(Dataset):
-    def __init__(self, sequences, labels, tokenizer, max_length):
+class TransformerSyntheticDataset(Dataset):
+    def __init__(self, sequences, labels, tokenizer, max_length, chunk_size=512):
+        for sequence in sequences:
+            for i in range(0, len(sequence), chunk_size):
+                sequence.insert(i, tokenizer.cls_token)
+
         self.encodings = tokenizer(
             [' '.join(seq) for seq in sequences],
             truncation=False,
