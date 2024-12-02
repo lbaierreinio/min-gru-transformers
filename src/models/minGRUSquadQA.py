@@ -3,7 +3,7 @@ from dataclasses import dataclass
 import torch.nn as nn
 from torch.nn import functional as F
 
-from layers.MinGRU import MinGRU
+from layers.rnn.MinGRU import MinGRU
 
 
 @dataclass
