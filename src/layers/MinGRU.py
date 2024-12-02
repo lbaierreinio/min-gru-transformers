@@ -76,9 +76,9 @@ class MinGRU(nn.Module):
             log_tilde_h = self.log_g(tilde_h) # Log candidate state
 
             mask = mask.unsqueeze(-1)
-            log_one_minus_z = h.masked_fill(mask, 0)
-            log_tilde_h = h.masked_fill(mask, 0)
-            log_one_minus_z = h.masked_fill(mask, 0)
+            log_z = log_z.masked_fill(mask, 0)
+            log_tilde_h = log_tilde_h.masked_fill(mask, 0)
+            log_one_minus_z = log_one_minus_z.masked_fill(mask, 0)
 
             h = self.parallel_scan_log(log_one_minus_z, log_z + log_tilde_h) # Hidden states
 
