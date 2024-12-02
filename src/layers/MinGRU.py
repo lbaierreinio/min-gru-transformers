@@ -80,12 +80,14 @@ class MinGRU(nn.Module):
 
             if mask is not None:
                 mask = mask.unsqueeze(-1)
-                log_z = log_z.masked_fill(mask, float('-inf'))
-                log_tilde_h = log_tilde_h.masked_fill(mask, float('-inf'))
+                log_z = log_z.masked_fill(mask, 0)
+                log_tilde_h = log_tilde_h.masked_fill(mask, 0)
                 log_one_minus_z = log_one_minus_z.masked_fill(
-                    mask, float('-inf'))
+                    mask, 0)
 
             h = self.parallel_scan_log(
                 log_one_minus_z, log_z + log_tilde_h)  # Hidden states
 
+            if mask is not None:
+                h = h.masked_fill(mask, 0)
         return h
