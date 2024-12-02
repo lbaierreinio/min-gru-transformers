@@ -13,6 +13,7 @@ from utils.squad_dataloader import get_squad_v2_dataloaders, get_squad_v2_valida
 # TODO: may want to do graident accumulation
 # TODO: explore GRU bidirectionality
 # TODO: may want to checkpoint model at the end (/ between epochs)
+# TODO: may want different accuracies for answerable and non-answerable
 # ########################################################
 # Set configurations
 
@@ -39,7 +40,6 @@ min_lr = max_lr * 0.1
 warmup_steps = 5000
 epochs = 30
 B = 16 # batch size
-T = 1024 # sequence length
 
 # Model configurations
 n_layer = 2
@@ -55,6 +55,13 @@ config = MinGRUSquadQAConfig(
     classification_head_dim=classification_head_dim
 )
 model = MinGRUSquadQA(config)
+
+model_size = sum(p.numel() for p in model.parameters())
+print(f"Model size: {model_size} parameters")
+# NOTE: for reference, the BiDAF baseline from file:///Users/kyungjaelee/school/uoft/f24/csc2516/Project/default-final-project-handout.pdf
+#       uses 27,968,705 parameters and achieves F1 ~58, EM ~55 after 25 epochs
+# import sys; sys.exit(0)
+
 model.to(device)
 
 train_loader, val_loader = get_squad_v2_dataloaders(tokenizer, batch_size=B)
@@ -200,7 +207,7 @@ for i in range(epochs):
         avg_val_loss = val_loss_accum / len(val_loader)
         results = squad_metric.compute(predictions=predictions, references=references)
         em, f1 = results["exact"], results["f1"]
-        epoch_metrics = f"[Val] Epoch {i:4d} | val_loss: {val_loss_accum.item():.4f} | exact_math: {em:.4f} | F1: {f1:.4f}"
+        epoch_metrics = f"[Val] Epoch {i:4d} | val_loss: {avg_val_loss:.4f} | exact_match: {em:.4f} | F1: {f1:.4f}"
         print(epoch_metrics)
         with open(log_file, "a") as f:
             f.write(f"{epoch_metrics}\n")
