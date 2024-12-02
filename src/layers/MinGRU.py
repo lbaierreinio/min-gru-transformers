@@ -44,7 +44,7 @@ class MinGRU(nn.Module):
         """
         return torch.where(x >= 0, torch.log(F.relu(x)+0.5), -F.softplus(-x))
 
-    def forward(self, x, h_prev=None, mask=None):
+    def forward(self, x, *, h_prev=None, mask=None):
         """
         Compute the forward pass. Note that if h_prev is not none,
         then we assume the model is processing tokens sequentially.
@@ -80,9 +80,10 @@ class MinGRU(nn.Module):
 
             if mask is not None:
                 mask = mask.unsqueeze(-1)
-                log_z = log_z.masked_fill(mask, 0)
-                log_tilde_h = log_tilde_h.masked_fill(mask, 0)
-                log_one_minus_z = log_one_minus_z.masked_fill(mask, 0)
+                log_z = log_z.masked_fill(mask, float('-inf'))
+                log_tilde_h = log_tilde_h.masked_fill(mask, float('-inf'))
+                log_one_minus_z = log_one_minus_z.masked_fill(
+                    mask, float('-inf'))
 
             h = self.parallel_scan_log(
                 log_one_minus_z, log_z + log_tilde_h)  # Hidden states
