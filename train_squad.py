@@ -8,7 +8,7 @@ from transformers import get_cosine_schedule_with_warmup
 from tqdm import tqdm
 
 from models.MinGRUSquadQA import MinGRUSquadQA, MinGRUSquadQAConfig
-from utils.squad_dataloader import get_squad_v2_dataloaders, get_squad_v2_validation_references
+from utils.squad_dataloader import get_squad_dataloaders, get_squad_validation_references
 
 # TODO: may want to do graident accumulation
 # TODO: explore GRU bidirectionality
@@ -63,9 +63,12 @@ print(f"Model size: {model_size} parameters")
 
 model.to(device)
 
-train_loader, val_loader = get_squad_v2_dataloaders(tokenizer, batch_size=B)
-references = get_squad_v2_validation_references()
-squad_metric = load("squad_v2")
+squad_version = "squad" # "squad" for v1, "squad_v2" for v2
+if squad_version not in ["squad", "squad_v2"]:
+    raise Exception("Invalid SQuAD version provided")
+train_loader, val_loader = get_squad_dataloaders(tokenizer, batch_size=B, version=squad_version)
+references = get_squad_validation_references(version=squad_version)
+squad_metric = load(squad_version)
 if use_compile:
     model = torch.compile(model)
 
@@ -118,15 +121,15 @@ def get_predictions(batch, logits):
     start_logits, end_logits = logits[:,:,0], logits[:,:,1] # [B, T]
 
     # Only consider best top_k start and end positions for efficieny
-    top_k = 20
+    top_k = 10
     top_start_scores, top_start_indices = torch.topk(start_logits, k=top_k, dim=1) # [B, top_k]
     top_end_scores, top_end_indices = torch.topk(end_logits, k=top_k, dim=1) # [B, top_k]
 
     predictions = []
     for b in range(B):
         # Compute all pairwise scores between the top k best start/end positions and take the best
-        # Use "no answer" prediction as default value
-        max_score = start_logits[b, 0] + end_logits[b, 0]
+        # Use "no answer" prediction as default value for v2
+        max_score = (start_logits[b, 0] + end_logits[b, 0]) if squad_version == "squad_v2" else float("-inf")
         best_range = (0, 0)
         for i in range(top_k):
             for j in range(top_k):
@@ -156,10 +159,13 @@ def get_predictions(batch, logits):
                     max_score = score
                     best_range = (start_idx, end_idx)
         if best_range == (0,0):
-            prediction = {"id": ids[b], "prediction_text": "", "no_answer_probability": 1.0}
+            prediction = {"id": ids[b], "prediction_text": ""}
         else:
             prediction_text = tokenizer.decode(input_ids[b][best_range[0]:best_range[1]+1])
-            prediction = {"id": ids[b], "prediction_text": prediction_text, "no_answer_probability": 0.}
+            prediction = {"id": ids[b], "prediction_text": prediction_text}
+        
+        if squad_version == "squad_v2":
+            prediction["no_answer_probability"] = 1.0 if best_range == (0,0) else 0.
         predictions.append(prediction)
 
     return predictions
@@ -171,7 +177,7 @@ for i in range(epochs):
     model.train()
     loss_accum = 0.0
     tokens_processed = 0
-    for batch in tqdm(train_loader):
+    for batch in tqdm(val_loader):
         optimizer.zero_grad()
         logits, loss = forward_batch(batch)
         loss_accum += loss.detach()
@@ -210,7 +216,8 @@ for i in range(epochs):
         avg_val_loss = val_loss_accum / len(val_loader)
         if should_get_predictions:
             results = squad_metric.compute(predictions=predictions, references=references)
-            em, f1 = results["exact"], results["f1"]
+            em_key = "exact" if squad_version == "squad_v2" else "exact_match"
+            em, f1 = results[em_key], results["f1"]
             em_str = f"EM: {em:.4f}"
             f1_str = f"F1: {f1:.4f}"
         else:
