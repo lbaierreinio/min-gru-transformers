@@ -46,6 +46,13 @@ class LongTransformerEncoder(nn.Module):
         x_res = x_out[:, 0, :]  # (N * B, H) Extract [CLS] token from each chunk
         x_res = x_res.view(num_chunks, batch_size, num_hiddens)  # (N, B, H)
         x_res = x_res.transpose(0, 1)  # (B, N, H)
+
+        if mask is not None:
+            mask_indices = torch.tensor([i*self.chunk_size for i in range(0, num_chunks)]).to(x.device)
+            cls_mask = mask[:, mask_indices].unsqueeze(-1)  # (B, N)
+
+            x_res = x_res.masked_fill(cls_mask, 0)
+
         
         x_res, _ = self.rnn_out(x_res)
         
