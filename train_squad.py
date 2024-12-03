@@ -60,7 +60,6 @@ model_size = sum(p.numel() for p in model.parameters())
 print(f"Model size: {model_size} parameters")
 # NOTE: for reference, the BiDAF baseline from file:///Users/kyungjaelee/school/uoft/f24/csc2516/Project/default-final-project-handout.pdf
 #       uses 27,968,705 parameters and achieves F1 ~58, EM ~55 after 25 epochs
-# import sys; sys.exit(0)
 
 model.to(device)
 
@@ -76,6 +75,7 @@ os.makedirs(log_dir, exist_ok=True)
 log_file = os.path.join(log_dir, f"log.txt")
 with open(log_file, "w") as f: # open for writing to clear the file
     pass
+eval_every = 5 # Every n epochs, evaluate EM and F1
 
 optimizer = torch.optim.AdamW(model.parameters(), lr=1e-4, fused=use_fused)
 num_training_steps = epochs * len(train_loader)  # Total number of steps
@@ -112,13 +112,15 @@ def get_predictions(batch, logits):
     """
     ids = batch["id"]
     input_ids = batch["input_ids"]
+    token_type_ids = batch["token_type_ids"]
     B, T = input_ids.shape
 
     start_logits, end_logits = logits[:,:,0], logits[:,:,1] # [B, T]
-    top_k = 20 # only consider best top_k logits for efficiency
 
-    top_start_scores, top_start_indices = torch.topk(start_logits, k=top_k, dim=1)
-    top_end_scores, top_end_indices = torch.topk(end_logits, k=top_k, dim=1)
+    # Only consider best top_k start and end positions for efficieny
+    top_k = 20
+    top_start_scores, top_start_indices = torch.topk(start_logits, k=top_k, dim=1) # [B, top_k]
+    top_end_scores, top_end_indices = torch.topk(end_logits, k=top_k, dim=1) # [B, top_k]
 
     predictions = []
     for b in range(B):
@@ -126,8 +128,8 @@ def get_predictions(batch, logits):
         # Use "no answer" prediction as default value
         max_score = start_logits[b, 0] + end_logits[b, 0]
         best_range = (0, 0)
-        for i in range(len(top_start_indices)):
-            for j in range(len(top_end_indices)):
+        for i in range(top_k):
+            for j in range(top_k):
                 start_idx = top_start_indices[b, i].item()
                 end_idx = top_end_indices[b, j].item()
                 # Do not consider predictions with invalid start/end position combinations
@@ -137,10 +139,10 @@ def get_predictions(batch, logits):
                 # NOTE: token_type_ids will be a list of 0s (tokens corresponding to question), followed by
                 #       a list of 1s (tokens corresponding to context), again followed by a list of 0s (padding)
                 context_start_idx = 0
-                while batch["token_type_ids"][b][context_start_idx] == 0:
+                while token_type_ids[b][context_start_idx] == 0:
                     context_start_idx += 1
                 context_end_idx = T - 1
-                while batch["token_type_ids"][b][context_end_idx] == 0:
+                while token_type_ids[b][context_end_idx] == 0:
                     context_end_idx -= 1
                 if not(
                     (context_start_idx <= start_idx <= context_end_idx) and
@@ -195,6 +197,7 @@ for i in range(epochs):
     # eval
     model.eval()
     with torch.no_grad():
+        should_get_predictions = i % eval_every
         val_loss_accum = 0.0
 
         # As we're iterating through the batch, get predictions in the format {"id": ..., "prediction": ...}
@@ -202,12 +205,18 @@ for i in range(epochs):
         for batch in tqdm(val_loader):
             logits, loss = forward_batch(batch)
             val_loss_accum += loss.detach()
-            predictions.extend(get_predictions(batch, logits))
+            # Only perform eval every 5 epochs
+            if should_get_predictions:
+                predictions.extend(get_predictions(batch, logits))
         
         avg_val_loss = val_loss_accum / len(val_loader)
-        results = squad_metric.compute(predictions=predictions, references=references)
-        em, f1 = results["exact"], results["f1"]
-        epoch_metrics = f"[Val] Epoch {i:4d} | val_loss: {avg_val_loss:.4f} | exact_match: {em:.4f} | F1: {f1:.4f}"
+        if should_get_predictions:
+            results = squad_metric.compute(predictions=predictions, references=references)
+            em, f1 = results["exact"], results["f1"]
+            epoch_metrics = f"[Val] Epoch {i:4d} | val_loss: {avg_val_loss:.4f} | EM: {em:.4f} | F1: {f1:.4f}"
+        else:
+            epoch_metrics = f"[Val] Epoch {i:4d} | val_loss: {avg_val_loss:.4f} | EM: N/A | F1: N/A"
+            
         print(epoch_metrics)
         with open(log_file, "a") as f:
             f.write(f"{epoch_metrics}\n")
