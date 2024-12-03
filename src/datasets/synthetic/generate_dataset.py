@@ -1,7 +1,7 @@
 import torch
 import argparse
 from transformers import AutoTokenizer
-from datasets.synthetic.utility import generate_dataset8
+from datasets.synthetic.utility import generate_dataset8, get_split
 from datasets.synthetic.TransformerSyntheticDataset import TransformerSyntheticDataset
 
 from dataclasses import dataclass
@@ -12,7 +12,7 @@ class DatasetConfig:
     """
     Configuration of the experiment.
     """
-    sequence_length: int = 2000
+    sequence_length: int = 2044
     num_examples: int = 101
     tokenizer: str = 'bert-base-uncased'
     alpha: int = 1
@@ -71,7 +71,21 @@ def main():
     )
 
     dataset = TransformerSyntheticDataset(
-        examples, labels, tokenizer, config.sequence_length)
+        examples, labels, tokenizer, 2048)
+    
+    print(dataset[0]['attention_mask'].shape)
+
+    d, _ = get_split(dataset, batch_size=4, validation_split=0.1)
+
+    for b in d:
+        mask = b['attention_mask']
+        print(mask)
+        print(mask.shape)
+        mask = mask.view(4, 4, 512)
+        print(mask.shape)
+        mask = mask.transpose(0,1)
+        mask = mask.reshape(4*4, 512)
+        break
 
     torch.save(dataset, dataset_path)
 
