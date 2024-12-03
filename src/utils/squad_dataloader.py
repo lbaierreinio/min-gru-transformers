@@ -34,9 +34,8 @@ def preprocess_function(tokenizer, examples):
 
         # unanswerable question
         if not answer["answer_start"]:
-            cls_token_idx = inputs["input_ids"][i].index(tokenizer.cls_token_id)
-            start_positions.append(cls_token_idx)
-            end_positions.append(cls_token_idx)
+            start_positions.append(0)
+            end_positions.append(0)
             continue
 
         # Answerable question
@@ -72,24 +71,44 @@ def get_squad_v2_dataloaders(tokenizer, batch_size):
     val_dataset = load_dataset("rajpurkar/squad_v2", split="validation")
 
     # Preprocess and tokenize
+    cols_to_remove = set(train_dataset.column_names)
+    cols_to_remove.remove("id") # keep id to do eval
     train_dataset = train_dataset.map(
         partial(preprocess_function, tokenizer),
         batched=True,
-        remove_columns=train_dataset.column_names,
+        remove_columns=cols_to_remove,
     )
     val_dataset = val_dataset.map(
         partial(preprocess_function, tokenizer),
         batched=True,
-        remove_columns=val_dataset.column_names,
+        remove_columns=cols_to_remove,
     )
 
-    data_collator = DataCollatorWithPadding(tokenizer=tokenizer)
+    padding_collator = DataCollatorWithPadding(tokenizer=tokenizer)
+    # Custom collate function to handle 'id'
+    def collate_fn(batch):
+        # Extract ids
+        ids = [example.pop("id") for example in batch]
+        # Collate everything else using DataCollatorWithPadding
+        tokenized_batch = padding_collator(batch)
+        tokenized_batch["id"] = ids  # Add ids back to the batch
+        return tokenized_batch
 
     train_dataloader = DataLoader(
-        train_dataset, batch_size=batch_size, shuffle=True, collate_fn=data_collator
+        train_dataset, batch_size=batch_size, shuffle=True, collate_fn=collate_fn
     )
     val_dataloader = DataLoader(
-        val_dataset, batch_size=batch_size, shuffle=False, collate_fn=data_collator
+        val_dataset, batch_size=batch_size, shuffle=False, collate_fn=collate_fn
     )
 
     return train_dataloader, val_dataloader
+
+
+def get_squad_v2_validation_references():
+    val_dataset = load_dataset("rajpurkar/squad_v2", split="validation")
+    # Remove everything except id and answers
+    cols_to_remove = val_dataset.column_names
+    cols_to_remove.remove("id")
+    cols_to_remove.remove("answers")
+    val_dataset = val_dataset.map(remove_columns=cols_to_remove)
+    return list(val_dataset)
