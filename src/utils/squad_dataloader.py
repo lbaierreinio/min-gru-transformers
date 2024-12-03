@@ -65,10 +65,15 @@ def preprocess_function(tokenizer, examples):
     return inputs
 
 
-def get_squad_v2_dataloaders(tokenizer, batch_size):
+def get_squad_v2_dataloaders(tokenizer, batch_size, num_examples=None):
     # Load datasets from HuggingFace
     train_dataset = load_dataset("rajpurkar/squad_v2", split="train")
     val_dataset = load_dataset("rajpurkar/squad_v2", split="validation")
+
+    # selects a subset of examples, if arg is specified 
+    if num_examples is not None:
+        train_dataset = train_dataset.select(range(num_examples))
+        val_dataset = val_dataset.select(range(num_examples))
 
     # Preprocess and tokenize
     cols_to_remove = set(train_dataset.column_names)
@@ -104,8 +109,12 @@ def get_squad_v2_dataloaders(tokenizer, batch_size):
     return train_dataloader, val_dataloader
 
 
-def get_squad_v2_validation_references():
+def get_squad_v2_validation_references(num_examples=None):
     val_dataset = load_dataset("rajpurkar/squad_v2", split="validation")
+
+    if num_examples is not None:
+      val_dataset = val_dataset.select(range(num_examples))
+
     # Remove everything except id and answers
     cols_to_remove = val_dataset.column_names
     cols_to_remove.remove("id")
