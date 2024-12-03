@@ -45,6 +45,7 @@ def train(model, train_dataloader, val_dataloader, num_epochs, loss_fn, learning
             optimizer.zero_grad()
             output = model(input, mask=mask)
             loss = loss_fn(output, labels)
+            total_loss += loss.item()
             loss.backward()
             optimizer.step()
             if torch.cuda.is_available():

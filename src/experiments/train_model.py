@@ -6,10 +6,31 @@ from dataclasses import dataclass
 from datasets.synthetic.utility import get_split
 from train.utility import train
 from datasets.synthetic.generate_dataset import DatasetConfig
-from experiments.mingru_config import MinGRUConfig
-from experiments.transformer_config import TransformerConfig
 from models.MinGRUSynthetic import MinGRUSynthetic
 from models.TransformerSynthetic import TransformerSynthetic
+
+@dataclass
+class MinGRUConfig:
+    """
+    Configuration for minGRU model.
+    """
+    name: str = 'mingru'
+    embedding_dim: int = 128
+    expansion_factor: float = 2.5
+    num_layers: int = 2
+    bidirectional: bool = True
+
+@dataclass
+class TransformerConfig:
+    """
+    Configuration for Transformer model.
+    """
+    name: str = 'transformer'
+    num_heads: int = 4
+    num_layers: int = 4
+    num_hiddens: int = 128
+    ffn_num_hiddens: int = 512
+    chunk_size: int = 32
 
 
 @dataclass
@@ -87,6 +108,12 @@ def main():
         ).to(device)
 
     num_parameters = sum(p.numel() for p in model.parameters())
+
+    print(f"Model: {config.name}")
+    print(f"Number of Parameters: {num_parameters}")
+    print(f"Bidirectional: {config.bidirectional}")
+    print(f"Number of Layers: {config.num_layers}")
+    print(f"Embedding Dimension: {config.embedding_dim}")
 
     # (5) Train Model
     validation_accuracy, total_validation_loss, steps, total_epochs, avg_time_per_step = train(
