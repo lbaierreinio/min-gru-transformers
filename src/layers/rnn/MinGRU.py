@@ -86,7 +86,7 @@ class MinGRU(nn.Module):
             log_z = -F.softplus(-k)  # Log (z)
             log_one_minus_z = -F.softplus(k)  # Log (1 - z)
             log_tilde_h = self.log_g(tilde_h)  # Log candidate state
-
+  
             mask = mask.unsqueeze(-1) if mask is not None else None
             h = self.parallel_scan_log(
                 log_one_minus_z, log_z + log_tilde_h, mask)  # Hidden states

@@ -1,23 +1,38 @@
-import torch
-import torch.nn.functional as F
+import os
+import pandas as pd
 
-def parallel_scan_log(log_a, log_b):
-    """
-    Given sequences log(a) and log(b) of length t, compute h[0:t-1],
-    where h[0] = b[0], and h[i] = a[i]*h[i-1] + b[i] for i > 0.
 
-    Args:
-        log_a: torch.Tensor
-        log_b: torch.Tensor
+def create_file(path):
+    data = []
+    # adding header
+    headerList = ['Model', 'Layers', 'Parameters', 'Sequence Length', 'Dataset Size', 'Training Steps',
+                  'Number of Epochs', 'Training Time', 'Memory Per Epoch', 'Validation Accuracy', 'Validation Loss']
 
-    Returns:
-        h: torch.Tensor
-    """
-    # Take cumulative sum across seq_len dimension
-    log_a_star = torch.cumsum(log_a, dim=1)
-    # Obtain log(b) - a_star and take logcumsumexp across seq_len dimension
-    log_x0_plus_b_star = torch.logcumsumexp(log_b - log_a_star, dim=1)
+    # Convert the data to a DataFrame
+    df = pd.DataFrame(data, columns=headerList)
 
-    log_x = log_a_star + log_x0_plus_b_star
+    # Write the DataFrame to a CSV file
+    df.to_csv(path, index=False)
 
-    return log_x.exp()
+
+def append_line(path, data):
+    assert os.path.exists(path), f"File does not exist at {path}"
+    new_row = pd.DataFrame([data])
+    new_row.to_csv(path, mode='a', index=False, header=False)
+
+
+def get_new_row():
+    new_row = {
+        'Model': None,
+        'Layers': None,
+        'Parameters': None,
+        'Sequence Length': None,
+        'Dataset Size': None,
+        'Training Steps': None,
+        'Number of Epochs': None,
+        'Training Time': None,
+        'Memory Per Epoch': None,
+        'Validation Accuracy': None,
+        'Validation Loss': None
+    }
+    return new_row
