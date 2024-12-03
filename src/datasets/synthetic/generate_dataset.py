@@ -2,15 +2,30 @@ import torch
 import argparse
 from transformers import AutoTokenizer
 from datasets.synthetic.utility import generate_dataset8
-from datasets.synthetic.SyntheticDataset import SyntheticDataset
-from experiments.dataset_config import DatasetConfig
+from datasets.synthetic.TransformerSyntheticDataset import TransformerSyntheticDataset
+from datasets.synthetic.MinGRUSyntheticDataset import MinGRUSyntheticDataset
+
+from dataclasses import dataclass
+
+
+@dataclass
+class DatasetConfig:
+    """
+    Configuration of the experiment.
+    """
+    sequence_length: int = 100
+    cls_tokens: int = 2
+    num_examples: int = 2000
+    tokenizer: str = 'bert-base-uncased'
+    alpha: int = 1
+    beta: int = 4
+    k_split: float = 0.05
+    k_indicator: float = 0.1
 
 """
 Script to generate and save a synthetic dataset given the current state
 of the dataset configuration file.
 """
-
-
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument('--dataset_path', type=str,
@@ -23,9 +38,15 @@ def main():
         raise ValueError("Dataset path must be specified")
 
     config = DatasetConfig()
+    
 
-    tokenizer = AutoTokenizer.from_pretrained(
+    transformer_tokenizer = AutoTokenizer.from_pretrained(
+        config.tokenizer, model_max_length=config.sequence_length+config.cls_tokens)
+
+    mingru_tokenizer = AutoTokenizer.from_pretrained(
         config.tokenizer, model_max_length=config.sequence_length)
+
+    mingru_tokenizer.padding_side = "left" # MinGRU uses pre-padding
 
     grammars = [
         {
@@ -54,10 +75,15 @@ def main():
         grammars=grammars,
     )
 
-    dataset = SyntheticDataset(
-        examples, labels, tokenizer, config.sequence_length)
+    transformer_dataset = TransformerSyntheticDataset(
+        examples, labels, transformer_tokenizer, 2048)
+    
+    mingru_dataset = MinGRUSyntheticDataset(
+        examples, labels, mingru_tokenizer, 2048
+    )
 
-    torch.save(dataset, dataset_path)
+    torch.save(transformer_dataset, f"transformer_{dataset_path}.pt")
+    torch.save(mingru_dataset, f"mingru_{dataset_path}.pt")
 
 
 if __name__ == '__main__':

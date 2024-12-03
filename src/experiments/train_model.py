@@ -2,14 +2,47 @@ import os
 import torch
 import argparse
 from transformers import AutoTokenizer
+from dataclasses import dataclass
 from datasets.synthetic.utility import get_split
 from train.utility import train
-from experiments.dataset_config import DatasetConfig
-from experiments.train_config import TrainConfig
-from experiments.mingru_config import MinGRUConfig
-from experiments.transformer_config import TransformerConfig
+from datasets.synthetic.generate_dataset import DatasetConfig
 from models.MinGRUSynthetic import MinGRUSynthetic
 from models.TransformerSynthetic import TransformerSynthetic
+
+@dataclass
+class MinGRUConfig:
+    """
+    Configuration for minGRU model.
+    """
+    name: str = 'mingru'
+    embedding_dim: int = 128
+    expansion_factor: float = 2.5
+    num_layers: int = 2
+    bidirectional: bool = True
+
+@dataclass
+class TransformerConfig:
+    """
+    Configuration for Transformer model.
+    """
+    name: str = 'transformer'
+    num_heads: int = 4
+    num_layers: int = 4
+    num_hiddens: int = 128
+    ffn_num_hiddens: int = 512
+    chunk_size: int = 32
+
+
+@dataclass
+class TrainConfig:
+    """
+    Configuration for training.
+    """
+    learning_rate: float = 1e-4
+    num_epochs: int = 100
+    early_stopping: bool = True
+    num_classes: int = 8
+    early_stopping_threshold: float = 0.95
 
 
 def main():
@@ -17,8 +50,6 @@ def main():
     parser = argparse.ArgumentParser()
     parser.add_argument('--dataset_path', type=str,
                         help='Training dataset path')
-    parser.add_argument('--model_out_path', type=str,
-                        help='Path to save the model to')
     parser.add_argument('--model', type=int,
                         help='Model to use: [0: MinGRU, 1: Transformer]')
 
@@ -27,7 +58,6 @@ def main():
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
     dataset_path = args.dataset_path
-    model_out_path = args.model_out_path
     model = args.model
 
     if dataset_path is None:
@@ -79,11 +109,17 @@ def main():
 
     num_parameters = sum(p.numel() for p in model.parameters())
 
+    print(f"Model: {config.name}")
+    print(f"Number of Parameters: {num_parameters}")
+    print(f"Bidirectional: {config.bidirectional}")
+    print(f"Number of Layers: {config.num_layers}")
+    print(f"Embedding Dimension: {config.embedding_dim}")
+
     # (5) Train Model
     validation_accuracy, total_validation_loss, steps, total_epochs, avg_time_per_step = train(
         model, train_dataloader, val_dataloader, train_config.num_epochs, loss_fn, train_config.learning_rate, early_stopping_threshold=train_config.early_stopping_threshold)
 
-    torch.save(model, f"{model_out_path}_{config.name}.pt")
+    torch.save(model, f"{config.name}.pt")
 
 
 if __name__ == '__main__':
