@@ -21,9 +21,9 @@ class TransformerEncoderBlock(nn.Module):
         self.relu = nn.ReLU()
         self.ffn2 = nn.Linear(ffn_num_hiddens, num_hiddens, bias=bias)
 
-    def forward(self, x):
+    def forward(self, x, mask=None):
         skip1 = x
-        x, _ = self.attention(x, x, x)  # Self Attention (Sublayer One)
+        x, _ = self.attention(x, x, x, key_padding_mask=mask)  # Self Attention (Sublayer One)
         skip2 = self.layernorm1(self.dropout1(x) + skip1)
         # Position-Wise FNN (Sublayer 2)
         x = self.ffn2(self.relu(self.ffn1(skip2)))

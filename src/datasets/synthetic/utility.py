@@ -39,7 +39,7 @@ def generate_dataset8(*, seq_len, num_examples, grammars, alpha, beta, k_split, 
     indicators = ['X', 'Y']
     orders = [[0, 1], [1, 0], [1, 1], [0, 0]]
 
-    examples = np.zeros((num_examples, seq_len), dtype=object)
+    examples = [None] * num_examples
     labels = np.zeros(num_examples, dtype=int)
     for _ in range(0, num_examples):
         # Select label
@@ -47,11 +47,11 @@ def generate_dataset8(*, seq_len, num_examples, grammars, alpha, beta, k_split, 
         order = orders[label]
 
         # Draw sequence length from beta distribution
-        cur_seq_len = min(32, int(np.random.beta(alpha, beta) * seq_len))
+        cur_seq_len =  max(32, int(np.random.beta(alpha, beta) * seq_len))
 
         # Draw split of sequences from normal distribution centered around middle of sequence
         split = np.clip(int(np.random.normal(cur_seq_len // 2,
-                        cur_seq_len * 0.05)), 8, cur_seq_len - 8)
+                        cur_seq_len * k_split)), 8, cur_seq_len - 8)
 
         sequence = generate_grammar(
             grammars[order[0]], split) + generate_grammar(grammars[order[1]], cur_seq_len - split)
@@ -68,9 +68,6 @@ def generate_dataset8(*, seq_len, num_examples, grammars, alpha, beta, k_split, 
         # Compute label
         if sequence[idx_one] == sequence[idx_two]:
             label += len(orders)
-
-        # Pad sequence
-        sequence = sequence + ['PAD'] * (seq_len - len(sequence))
 
         examples[_] = sequence
 

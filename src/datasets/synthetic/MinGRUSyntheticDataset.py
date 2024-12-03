@@ -2,13 +2,12 @@ from torch.utils.data import Dataset
 import torch
 
 
-class SyntheticDataset(Dataset):
+class MinGRUSyntheticDataset(Dataset):
     def __init__(self, sequences, labels, tokenizer, max_length):
         self.encodings = tokenizer(
             [' '.join(seq) for seq in sequences],
             truncation=False,
-            padding=True,
-            add_special_tokens=False,
+            add_special_tokens=True,
             max_length=max_length,
             return_tensors='pt'
         )

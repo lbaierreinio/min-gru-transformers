@@ -10,15 +10,15 @@ class MinGRUSynthetic(nn.Module):
         self.embedding = nn.Embedding(vocab_size, embedding_dim)
         
         # MinGRU layers
-        self.layers = nn.ModuleList(MinGRUBlock(embedding_dim) for _ in range(num_layers))
+        self.layers = nn.ModuleList(MinGRUBlock(embedding_dim, bidirectional=bidirectional) for _ in range(num_layers))
 
         # Classifier head
         self.linear = nn.Linear(embedding_dim, num_classes)
 
-    def forward(self, x):
+    def forward(self, x, mask=None):
         x = self.embedding(x)
         for layer in self.layers:
-            x = layer(x)
-        x = self.linear(x[:, -1]) # TODO: Update to use [CLS] token
+            x = layer(x, mask=mask)
+        x = self.linear(x[:, -1])
 
         return x
