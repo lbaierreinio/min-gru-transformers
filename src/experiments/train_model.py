@@ -30,7 +30,7 @@ class TransformerConfig:
     num_layers: int = 4
     num_hiddens: int = 128
     ffn_num_hiddens: int = 512
-    chunk_size: int = 32
+    chunk_size: int = 128
 
 
 @dataclass
@@ -104,16 +104,16 @@ def main():
             num_hiddens=config.num_hiddens,
             ffn_num_hiddens=config.ffn_num_hiddens,
             chunk_size=config.chunk_size,
-            max_len=dataset_config.sequence_length,
+            max_len=512,
         ).to(device)
 
     num_parameters = sum(p.numel() for p in model.parameters())
 
     print(f"Model: {config.name}")
     print(f"Number of Parameters: {num_parameters}")
-    print(f"Bidirectional: {config.bidirectional}")
+    # print(f"Bidirectional: {config.bidirectional}")
     print(f"Number of Layers: {config.num_layers}")
-    print(f"Embedding Dimension: {config.embedding_dim}")
+    # print(f"Embedding Dimension: {config.embedding_dim}")
 
     # (5) Train Model
     validation_accuracy, total_validation_loss, steps, total_epochs, avg_time_per_step = train(

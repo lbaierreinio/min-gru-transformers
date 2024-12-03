@@ -20,8 +20,7 @@ class LongTransformerEncoder(nn.Module):
             TransformerEncoderBlock(num_heads, num_hiddens, ffn_num_hiddens, dropout, bias) for _ in range(num_layers)
         ])
 
-        # Aggregate result of each chunk
-        self.rnn_out = nn.GRU(num_hiddens, num_hiddens, num_layers=1, batch_first=True)
+        self.rnn_out = nn.GRU(num_hiddens, num_hiddens, num_layers=1, batch_first=True, bidirectional=False)
 
     def forward(self, x, mask=None):
         x = self.embedding(x) * math.sqrt(self.num_hiddens)
@@ -37,22 +36,17 @@ class LongTransformerEncoder(nn.Module):
 
         if mask is not None:
             chunked_mask = mask.view(batch_size, num_chunks, self.chunk_size) # (B, N, C)
-            chunked_mask = chunked_mask.transpose(0,1)
+            chunked_mask = chunked_mask.transpose(0,1) # (N,B,C)
             chunked_mask = chunked_mask.reshape(batch_size * num_chunks, self.chunk_size) # (N * B, C)
-
         x_out = x_chunks
-
+        # print(x_out.shape)
         for layer in self.layers:
-            x_out = layer(x_out, mask=chunked_mask)
+            x_out = layer(x_out, chunked_mask if mask is not None else None)
 
         x_res = x_out[:, 0, :]  # (N * B, H) Extract [CLS] token from each chunk
         x_res = x_res.view(num_chunks, batch_size, num_hiddens)  # (N, B, H)
         x_res = x_res.transpose(0, 1)  # (B, N, H)
-
-        # Mask by picking out specific indices
-        indices = torch.tensor([i * 512] for i in range(num_chunks)).to(x.device)
-
-        cls_mask = mask[:, indices] # Compute mask of classes
-        cls_mask = cls_mask.unsqueeze(-1) # (B, N, 1)
-
-        return torch.mean((x_res.masked_fill(cls_mask, 0)), dim=1)  # Average Pooling (B, H)
+        
+        x_res, _ = self.rnn_out(x_res)
+        
+        return x_res[:, -1]

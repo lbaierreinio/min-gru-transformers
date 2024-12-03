@@ -4,7 +4,7 @@ import torch.nn as nn
 
 
 class PositionalEncoding(nn.Module):
-    def __init__(self, embedding_dim, max_len=5000):
+    def __init__(self, embedding_dim, max_len=2048):
         super().__init__()
 
         pe = torch.zeros(max_len, embedding_dim)

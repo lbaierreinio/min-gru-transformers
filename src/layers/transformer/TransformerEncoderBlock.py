@@ -10,7 +10,7 @@ class TransformerEncoderBlock(nn.Module):
 
         # Attention
         self.attention = nn.MultiheadAttention(
-            num_hiddens, num_heads, dropout=dropout, bias=bias)
+            num_hiddens, num_heads, dropout=dropout, bias=bias, batch_first=True)
 
         # Dropout
         self.dropout1 = nn.Dropout(dropout)
