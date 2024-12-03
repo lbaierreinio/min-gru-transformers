@@ -11,8 +11,8 @@ class TransformerSynthetic(nn.Module):
         self.dropout = nn.Dropout(dropout)
         self.fc_out = nn.Linear(num_hiddens, num_classes)
 
-    def forward(self, x):
-        x = self.long_transformer_encoder(x)
+    def forward(self, x, mask=None):
+        x = self.long_transformer_encoder(x, mask=mask)
         x = self.dropout(x)
         x = self.fc_out(x)
         return x

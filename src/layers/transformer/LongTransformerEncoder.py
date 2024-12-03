@@ -1,4 +1,5 @@
 import math
+import torch
 import torch.nn as nn
 from layers.transformer.PositionalEncoding import PositionalEncoding
 from layers.transformer.TransformerEncoderBlock import TransformerEncoderBlock
@@ -35,18 +36,23 @@ class LongTransformerEncoder(nn.Module):
         x_chunks = x_chunks.reshape(-1, self.chunk_size, num_hiddens) # (N * B, C, H)
 
         if mask is not None:
-            mask = mask.view(batch_size, num_chunks, self.chunk_size) # (B, N, C)
-            mask = mask.transpose(0,1)
-            mask = mask.reshape(batch_size * num_chunks, self.chunk_size) # (N * B, C)
+            chunked_mask = mask.view(batch_size, num_chunks, self.chunk_size) # (B, N, C)
+            chunked_mask = chunked_mask.transpose(0,1)
+            chunked_mask = chunked_mask.reshape(batch_size * num_chunks, self.chunk_size) # (N * B, C)
 
         x_out = x_chunks
 
         for layer in self.layers:
-            x_out = layer(x_out, mask=mask)
+            x_out = layer(x_out, mask=chunked_mask)
 
         x_res = x_out[:, 0, :]  # (N * B, H) Extract [CLS] token from each chunk
         x_res = x_res.view(num_chunks, batch_size, num_hiddens)  # (N, B, H)
         x_res = x_res.transpose(0, 1)  # (B, N, H)
 
-        x, _ = self.rnn_out(x)  # (B, N, H)
-        return x[:, -1] # Return final hidden state as our prediction
+        # Mask by picking out specific indices
+        indices = torch.tensor([i * 512] for i in range(num_chunks)).to(x.device)
+
+        cls_mask = mask[:, indices] # Compute mask of classes
+        cls_mask = cls_mask.unsqueeze(-1) # (B, N, 1)
+
+        return torch.mean((x_res.masked_fill(cls_mask, 0)), dim=1)  # Average Pooling (B, H)
