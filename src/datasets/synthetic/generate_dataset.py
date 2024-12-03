@@ -13,8 +13,8 @@ class DatasetConfig:
     """
     Configuration of the experiment.
     """
-    sequence_length: int = 100
-    cls_tokens: int = 2
+    sequence_length: int = 508
+    cls_tokens: int = 4
     num_examples: int = 2000
     tokenizer: str = 'bert-base-uncased'
     alpha: int = 1
@@ -76,10 +76,10 @@ def main():
     )
 
     transformer_dataset = TransformerSyntheticDataset(
-        examples, labels, transformer_tokenizer, 2048)
+        examples, labels, transformer_tokenizer, 512)
     
     mingru_dataset = MinGRUSyntheticDataset(
-        examples, labels, mingru_tokenizer, 2048
+        examples, labels, mingru_tokenizer, 512
     )
 
     torch.save(transformer_dataset, f"transformer_{dataset_path}.pt")
