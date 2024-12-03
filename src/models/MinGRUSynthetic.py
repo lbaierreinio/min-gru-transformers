@@ -16,8 +16,6 @@ class MinGRUSynthetic(nn.Module):
         self.linear = nn.Linear(embedding_dim, num_classes)
 
     def forward(self, x, mask=None):
-        if mask is not None:
-            mask = mask.bool()
         x = self.embedding(x)
         for layer in self.layers:
             x = layer(x, mask=mask)

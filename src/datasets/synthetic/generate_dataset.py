@@ -13,7 +13,7 @@ class DatasetConfig:
     """
     Configuration of the experiment.
     """
-    sequence_length: int = 510
+    sequence_length: int = 100
     cls_tokens: int = 2
     num_examples: int = 2000
     tokenizer: str = 'bert-base-uncased'

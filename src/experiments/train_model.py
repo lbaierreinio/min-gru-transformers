@@ -2,14 +2,26 @@ import os
 import torch
 import argparse
 from transformers import AutoTokenizer
+from dataclasses import dataclass
 from datasets.synthetic.utility import get_split
 from train.utility import train
 from datasets.synthetic.generate_dataset import DatasetConfig
-from experiments.train_config import TrainConfig
 from experiments.mingru_config import MinGRUConfig
 from experiments.transformer_config import TransformerConfig
 from models.MinGRUSynthetic import MinGRUSynthetic
 from models.TransformerSynthetic import TransformerSynthetic
+
+
+@dataclass
+class TrainConfig:
+    """
+    Configuration for training.
+    """
+    learning_rate: float = 1e-4
+    num_epochs: int = 100
+    early_stopping: bool = True
+    num_classes: int = 8
+    early_stopping_threshold: float = 0.95
 
 
 def main():

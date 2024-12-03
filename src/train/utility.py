@@ -39,7 +39,7 @@ def train(model, train_dataloader, val_dataloader, num_epochs, loss_fn, learning
         for batch in train_dataloader:
             input = batch['input_ids'].to(device)
             labels = batch['labels'].to(device)
-            mask = batch['attention_mask'].to(device).bool()
+            mask = ~batch['attention_mask'].to(device).bool()
 
             start = time.time()  # TODO: Verify this is a good way to measure time b/c batch size might not necessarily always be the same(?)
             optimizer.zero_grad()
