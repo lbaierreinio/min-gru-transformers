@@ -24,7 +24,6 @@ class MinGRU(nn.Module):
             h: torch.Tensor
         """
         if mask is not None:
-            mask = mask.unsqueeze(-1)
             log_a = log_a.masked_fill(mask, 0)
             log_b = log_b.masked_fill(mask, 0)
 
@@ -88,10 +87,10 @@ class MinGRU(nn.Module):
             log_one_minus_z = -F.softplus(k)  # Log (1 - z)
             log_tilde_h = self.log_g(tilde_h)  # Log candidate state
 
+            mask = mask.unsqueeze(-1) if mask is not None else None
             h = self.parallel_scan_log(
                 log_one_minus_z, log_z + log_tilde_h, mask)  # Hidden states
 
             if mask is not None:
-                mask = mask.unsqueeze(-1)
                 h = h.masked_fill(mask, 0)
         return h
