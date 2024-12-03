@@ -225,3 +225,11 @@ for i in range(epochs):
         print(epoch_metrics)
         with open(log_file, "a") as f:
             f.write(f"{epoch_metrics}\n")
+
+# Save last model
+checkpoint = {
+    'model_state_dict': model.state_dict(),
+    'optimizer_state_dict': optimizer.state_dict(),
+}
+torch.save(checkpoint, 'checkpoint.pth')
+print("Checkpoint saved!")
