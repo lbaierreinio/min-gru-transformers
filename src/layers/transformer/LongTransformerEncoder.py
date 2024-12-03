@@ -19,8 +19,8 @@ class LongTransformerEncoder(nn.Module):
             TransformerEncoderBlock(num_heads, num_hiddens, ffn_num_hiddens, dropout, bias) for _ in range(num_layers)
         ])
 
-        # Attention can accept (chunk size) # of chunks
-        self.attention = nn.MultiheadAttention(chunk_size, chunk_size, dropout=dropout)
+        # Aggregate result of each chunk
+        self.rnn_out = nn.GRU(num_hiddens, num_hiddens, num_layers=1, batch_first=True)
 
     def forward(self, x, mask=None):
         x = self.embedding(x) * math.sqrt(self.num_hiddens)
@@ -39,7 +39,6 @@ class LongTransformerEncoder(nn.Module):
             mask = mask.transpose(0,1)
             mask = mask.reshape(batch_size * num_chunks, self.chunk_size) # (N * B, C)
 
-
         x_out = x_chunks
 
         for layer in self.layers:
@@ -50,4 +49,4 @@ class LongTransformerEncoder(nn.Module):
         x_res = x_res.transpose(0, 1)  # (B, N, H)
 
         x, _ = self.rnn_out(x)  # (B, N, H)
-        return x[:, -1]
+        return x[:, -1] # Return final hidden state as our prediction
