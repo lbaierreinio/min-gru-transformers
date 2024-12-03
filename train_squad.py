@@ -22,8 +22,8 @@ torch.manual_seed(1337)
 if torch.cuda.is_available():
     torch.cuda.manual_seed(1337)
 use_fused = torch.cuda.is_available()
-use_compile = False
-ampere_gpu = False
+use_compile = True
+ampere_gpu = True
 if ampere_gpu:
     torch.set_float32_matmul_precision("high") # use tf32 where possible
 # autodetect the device
@@ -39,12 +39,12 @@ max_lr = 6e-4 * 3
 min_lr = max_lr * 0.1
 warmup_steps = 5000
 epochs = 30
-B = 16 # batch size
+B = 64 # batch size
 
 # Model configurations
-n_layer = 2
-hidden_dim = 256
-classification_head_dim = 256
+n_layer = 8
+hidden_dim = 768
+classification_head_dim = 768
 #########################################################
 # Create model
 tokenizer = AutoTokenizer.from_pretrained("bert-base-cased")
@@ -185,14 +185,10 @@ for i in range(epochs):
         # wait for all cuda processes to finish to get accurate timing
         torch.cuda.synchronize()
     t1 = time.time()
-    avg_loss = loss_accum / len(train_loader)
+    avg_train_loss = loss_accum / len(train_loader)
     cur_lr = scheduler.get_last_lr()[0]
     dt = t1 - t0
     tok_per_sec = tokens_processed / dt
-    epoch_metrics = f"[Train] Epoch {i:4d} | loss: {avg_loss:.6f} | cur_lr: {cur_lr:.6f} | dt: {dt:.2f} | tok/sec: {tok_per_sec:.2f}"
-    print(epoch_metrics)
-    with open(log_file, "a") as f:
-        f.write(f"{epoch_metrics}\n")
 
     # eval
     model.eval()
@@ -206,17 +202,21 @@ for i in range(epochs):
             logits, loss = forward_batch(batch)
             val_loss_accum += loss.detach()
             # Only perform eval every 5 epochs
-            if should_get_predictions:
-                predictions.extend(get_predictions(batch, logits))
+
+        # TODO: move this back inside the block. Currently only evaluating the last batch
+        if should_get_predictions:
+            predictions.extend(get_predictions(batch, logits))
         
         avg_val_loss = val_loss_accum / len(val_loader)
         if should_get_predictions:
             results = squad_metric.compute(predictions=predictions, references=references)
             em, f1 = results["exact"], results["f1"]
-            epoch_metrics = f"[Val] Epoch {i:4d} | val_loss: {avg_val_loss:.4f} | EM: {em:.4f} | F1: {f1:.4f}"
+            em_str = f"EM: {em:.4f}"
+            f1_str = f"F1: {f1:.4f}"
         else:
-            epoch_metrics = f"[Val] Epoch {i:4d} | val_loss: {avg_val_loss:.4f} | EM: N/A | F1: N/A"
-            
+            em_str = f"EM: N/A"
+            f1_str = f"F1: N/A"
+        epoch_metrics = f"Epoch {i:4d} | train_loss: {avg_train_loss:.6f} | val_loss: {avg_val_loss:.6f} | cur_lr: {cur_lr:.6f} | dt: {dt:.2f} | tok/sec: {tok_per_sec:.2f} | {em_str} | {f1_str}"
         print(epoch_metrics)
         with open(log_file, "a") as f:
             f.write(f"{epoch_metrics}\n")
