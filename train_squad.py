@@ -177,7 +177,7 @@ for i in range(epochs):
     model.train()
     loss_accum = 0.0
     tokens_processed = 0
-    for batch in tqdm(val_loader):
+    for batch in tqdm(train_loader):
         optimizer.zero_grad()
         logits, loss = forward_batch(batch)
         loss_accum += loss.detach()
@@ -207,11 +207,9 @@ for i in range(epochs):
         for batch in tqdm(val_loader):
             logits, loss = forward_batch(batch)
             val_loss_accum += loss.detach()
-            # Only perform eval every 5 epochs
-
-        # TODO: move this back inside the block. Currently only evaluating the last batch
-        if should_get_predictions:
-            predictions.extend(get_predictions(batch, logits))
+            # Only perform eval every few epochs
+            if should_get_predictions:
+                predictions.extend(get_predictions(batch, logits))
         
         avg_val_loss = val_loss_accum / len(val_loader)
         if should_get_predictions:
