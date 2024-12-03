@@ -11,7 +11,7 @@ class MinGRU(nn.Module):
         # Linear layer for producing candidate state h_tilde from x
         self.linear_h = nn.Linear(dim_in, dim_hidden)
 
-    def parallel_scan_log(self, log_a, log_b):
+    def parallel_scan_log(self, log_a, log_b, mask=None):
         """
         Given sequences log(a) and log(b) of length t, compute h[0:t-1],
         where h[0] = b[0], and h[i] = a[i]*h[i-1] + b[i] for i > 0.
@@ -23,11 +23,20 @@ class MinGRU(nn.Module):
         Returns:
             h: torch.Tensor
         """
+        if mask is not None:
+            log_a = log_a.masked_fill(mask, 0)
+            log_b = log_b.masked_fill(mask, 0)
+
         # Take cumulative sum across seq_len dimension
         log_a_star = torch.cumsum(log_a, dim=1)
-        # Obtain log(b) - a_star and take logcumsumexp across seq_len dimension
-        log_x0_plus_b_star = torch.logcumsumexp(log_b - log_a_star, dim=1)
 
+        log_a_b_star = log_b - log_a_star
+
+        if mask is not None:
+            log_a_b_star = log_a_b_star.masked_fill(mask, float('-inf'))
+
+        log_x0_plus_b_star = torch.logcumsumexp(log_a_b_star, dim=1)
+        
         log_x = log_a_star + log_x0_plus_b_star
 
         return log_x.exp()
@@ -78,15 +87,9 @@ class MinGRU(nn.Module):
             log_one_minus_z = -F.softplus(k)  # Log (1 - z)
             log_tilde_h = self.log_g(tilde_h)  # Log candidate state
 
-            if mask is not None:
-                mask = mask.unsqueeze(-1)
-                log_z = log_z.masked_fill(mask, 0)
-                log_tilde_h = log_tilde_h.masked_fill(mask, 0)
-                log_one_minus_z = log_one_minus_z.masked_fill(
-                    mask, 0)
-
+            mask = mask.unsqueeze(-1) if mask is not None else None
             h = self.parallel_scan_log(
-                log_one_minus_z, log_z + log_tilde_h)  # Hidden states
+                log_one_minus_z, log_z + log_tilde_h, mask)  # Hidden states
 
             if mask is not None:
                 h = h.masked_fill(mask, 0)
