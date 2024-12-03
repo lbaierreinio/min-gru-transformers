@@ -216,7 +216,7 @@ for i in range(epochs):
         else:
             em_str = f"EM: N/A"
             f1_str = f"F1: N/A"
-        epoch_metrics = f"Epoch {i:4d} | train_loss: {avg_train_loss:.6f} | val_loss: {avg_val_loss:.6f} | cur_lr: {cur_lr:.6f} | dt: {dt:.2f} | tok/sec: {tok_per_sec:.2f} | {em_str} | {f1_str}"
+        epoch_metrics = f"Epoch {i:4d} | train_loss: {avg_train_loss:.6f} | val_loss: {avg_val_loss:.6f} | cur_lr: {cur_lr:.6f} | dt (train): {dt:.2f} | tok/sec (train): {tok_per_sec:.2f} | {em_str} | {f1_str}"
         print(epoch_metrics)
         with open(log_file, "a") as f:
             f.write(f"{epoch_metrics}\n")
