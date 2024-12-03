@@ -1,5 +1,5 @@
 import torch.nn as nn
-from layers.MinGRU import MinGRU
+from layers.rnn.MinGRU import MinGRU
 
 
 class MinGRUBlock(nn.Module):

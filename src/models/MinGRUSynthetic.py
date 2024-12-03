@@ -15,10 +15,12 @@ class MinGRUSynthetic(nn.Module):
         # Classifier head
         self.linear = nn.Linear(embedding_dim, num_classes)
 
-    def forward(self, x):
+    def forward(self, x, mask=None):
+        if mask is not None:
+            mask = mask.bool()
         x = self.embedding(x)
         for layer in self.layers:
-            x = layer(x)
-        x = self.linear(x[:, -1]) # TODO: Update to use [CLS] token
+            x = layer(x, mask=mask)
+        x = self.linear(x[:, -1])
 
         return x

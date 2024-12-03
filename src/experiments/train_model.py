@@ -4,7 +4,7 @@ import argparse
 from transformers import AutoTokenizer
 from datasets.synthetic.utility import get_split
 from train.utility import train
-from experiments.dataset_config import DatasetConfig
+from datasets.synthetic.generate_dataset import DatasetConfig
 from experiments.train_config import TrainConfig
 from experiments.mingru_config import MinGRUConfig
 from experiments.transformer_config import TransformerConfig
@@ -17,8 +17,6 @@ def main():
     parser = argparse.ArgumentParser()
     parser.add_argument('--dataset_path', type=str,
                         help='Training dataset path')
-    parser.add_argument('--model_out_path', type=str,
-                        help='Path to save the model to')
     parser.add_argument('--model', type=int,
                         help='Model to use: [0: MinGRU, 1: Transformer]')
 
@@ -27,7 +25,6 @@ def main():
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
     dataset_path = args.dataset_path
-    model_out_path = args.model_out_path
     model = args.model
 
     if dataset_path is None:
@@ -83,7 +80,7 @@ def main():
     validation_accuracy, total_validation_loss, steps, total_epochs, avg_time_per_step = train(
         model, train_dataloader, val_dataloader, train_config.num_epochs, loss_fn, train_config.learning_rate, early_stopping_threshold=train_config.early_stopping_threshold)
 
-    torch.save(model, f"{model_out_path}_{config.name}.pt")
+    torch.save(model, f"{config.name}.pt")
 
 
 if __name__ == '__main__':

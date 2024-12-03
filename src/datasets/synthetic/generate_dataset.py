@@ -1,8 +1,9 @@
 import torch
 import argparse
 from transformers import AutoTokenizer
-from datasets.synthetic.utility import generate_dataset8, get_split
+from datasets.synthetic.utility import generate_dataset8
 from datasets.synthetic.TransformerSyntheticDataset import TransformerSyntheticDataset
+from datasets.synthetic.MinGRUSyntheticDataset import MinGRUSyntheticDataset
 
 from dataclasses import dataclass
 
@@ -12,14 +13,14 @@ class DatasetConfig:
     """
     Configuration of the experiment.
     """
-    sequence_length: int = 2044
-    num_examples: int = 101
+    sequence_length: int = 510
+    cls_tokens: int = 2
+    num_examples: int = 2000
     tokenizer: str = 'bert-base-uncased'
     alpha: int = 1
     beta: int = 4
     k_split: float = 0.05
     k_indicator: float = 0.1
-    pre_padding: bool = False
 
 """
 Script to generate and save a synthetic dataset given the current state
@@ -37,11 +38,15 @@ def main():
         raise ValueError("Dataset path must be specified")
 
     config = DatasetConfig()
+    
 
-    tokenizer = AutoTokenizer.from_pretrained(
+    transformer_tokenizer = AutoTokenizer.from_pretrained(
+        config.tokenizer, model_max_length=config.sequence_length+config.cls_tokens)
+
+    mingru_tokenizer = AutoTokenizer.from_pretrained(
         config.tokenizer, model_max_length=config.sequence_length)
 
-    tokenizer.padding_side = "left" if config.pre_padding else "right"
+    mingru_tokenizer.padding_side = "left" # MinGRU uses pre-padding
 
     grammars = [
         {
@@ -70,24 +75,15 @@ def main():
         grammars=grammars,
     )
 
-    dataset = TransformerSyntheticDataset(
-        examples, labels, tokenizer, 2048)
+    transformer_dataset = TransformerSyntheticDataset(
+        examples, labels, transformer_tokenizer, 2048)
     
-    print(dataset[0]['attention_mask'].shape)
+    mingru_dataset = MinGRUSyntheticDataset(
+        examples, labels, mingru_tokenizer, 2048
+    )
 
-    d, _ = get_split(dataset, batch_size=4, validation_split=0.1)
-
-    for b in d:
-        mask = b['attention_mask']
-        print(mask)
-        print(mask.shape)
-        mask = mask.view(4, 4, 512)
-        print(mask.shape)
-        mask = mask.transpose(0,1)
-        mask = mask.reshape(4*4, 512)
-        break
-
-    torch.save(dataset, dataset_path)
+    torch.save(transformer_dataset, f"transformer_{dataset_path}.pt")
+    torch.save(mingru_dataset, f"mingru_{dataset_path}.pt")
 
 
 if __name__ == '__main__':
