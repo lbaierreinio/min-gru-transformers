@@ -154,7 +154,7 @@ def get_predictions(batch, logits):
                     continue
 
                 # 
-                score = top_start_scores[b, i]= + top_end_scores[b, j]
+                score = top_start_scores[b, i] + top_end_scores[b, j]
                 if score > max_score:
                     max_score = score
                     best_range = (start_idx, end_idx)
