@@ -71,8 +71,7 @@ def main():
     # (2) Load Dataset
     dataset_config = DatasetConfig()
 
-    tokenizer = AutoTokenizer.from_pretrained(
-        dataset_config.tokenizer, model_max_length=2048)
+    tokenizer = AutoTokenizer.from_pretrained(dataset_config.tokenizer)
 
     dataset = torch.load(dataset_path)
     train_dataloader, val_dataloader = get_split(dataset)
@@ -104,7 +103,7 @@ def main():
             num_hiddens=config.num_hiddens,
             ffn_num_hiddens=config.ffn_num_hiddens,
             chunk_size=config.chunk_size,
-            max_len=128,
+            max_len=dataset_config.sequence_length
         ).to(device)
 
     num_parameters = sum(p.numel() for p in model.parameters())
