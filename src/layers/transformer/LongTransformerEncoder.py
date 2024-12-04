@@ -24,25 +24,23 @@ class LongTransformerEncoder(nn.Module):
         # MinGRU for output
         self.out = BiMinGRU(num_hiddens, num_hiddens)
 
-    def forward(self, x, mask=None):
-
+    def forward(self, x, mask=None, is_chunked=True):
         x = self.embedding(x) * math.sqrt(self.num_hiddens)
         x = self.pos_encoder(x)
 
-        batch_size, max_seq_len, num_hiddens = x.shape
-        num_chunks = int(max_seq_len // self.chunk_size)
-
-        x = x.view(batch_size, num_chunks,
-                          self.chunk_size, num_hiddens)  # (Batch, Number of Chunks, Chunk Size, Hidden Dimension)
-        x = x.transpose(0, 1)  # (N, B, C, H)
-        x = x.reshape(-1, self.chunk_size, num_hiddens) # (N * B, C, H)
+        if is_chunked:
+            batch_size, max_seq_len, num_hiddens = x.shape
+            num_chunks = int(max_seq_len // self.chunk_size)
+            x = x.view(batch_size, num_chunks, self.chunk_size, num_hiddens)  # (Batch, Number of Chunks, Chunk Size, Hidden Dimension)
+            x = x.transpose(0, 1)  # (N, B, C, H)
+            x = x.reshape(-1, self.chunk_size, num_hiddens) # (N * B, C, H)
 
         for layer in self.layers:
             x = layer(x)
-
-        x = x.view(num_chunks, -1, self.chunk_size, num_hiddens) # (N, B, C, H)
-        x = x.transpose(1, 0) # (B, N, C, H)
-        x = x.reshape(batch_size, -1, num_hiddens) # (B, N * C, H)
+        if is_chunked:
+            x = x.view(num_chunks, -1, self.chunk_size, num_hiddens) # (N, B, C, H)
+            x = x.transpose(1, 0) # (B, N, C, H)
+            x = x.reshape(batch_size, -1, num_hiddens) # (B, N * C, H)
         
         x = self.out(x, mask)
         return x[:, -1] # (B, H)

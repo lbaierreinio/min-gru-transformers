@@ -40,7 +40,7 @@ class TrainConfig:
     learning_rate: float = 1e-4
     num_epochs: int = 20
     early_stopping: bool = True
-    num_classes: int = 4
+    num_classes: int = 8
     early_stopping_threshold: float = 0.95
 
 
