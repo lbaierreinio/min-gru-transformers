@@ -1,7 +1,7 @@
 import math
 import torch
 import torch.nn as nn
-from layers.rnn.BiMinGRU import BiMinGRU
+from layers.rnn.MinGRU import MinGRU
 from layers.transformer.PositionalEncoding import PositionalEncoding
 from layers.transformer.TransformerEncoderBlock import TransformerEncoderBlock
 
@@ -22,7 +22,7 @@ class LongTransformerEncoder(nn.Module):
         ])
 
         # Bidirectional MinGRU for output
-        self.min_gru_out = BiMinGRU(num_hiddens, num_hiddens, num_layers=1, bidirectional=True)
+        self.out = MinGRU(num_hiddens, num_hiddens, num_layers=1)
 
     def forward(self, x, mask=None):
 
@@ -49,6 +49,6 @@ class LongTransformerEncoder(nn.Module):
         x_out = x_out.transpose(0, 1) # (B, N, C, H)
         x_out = x_out.reshape(batch_size, -1, num_hiddens) # (B, N * C, H)
 
-        x_out = self.min_gru_out(x_out, mask=mask) # (B, N * C, H)
+        x_out = self.out(x_out, mask=mask) # (B, N * C, H)
         
         return x_out[:, -1] # (B, H)
