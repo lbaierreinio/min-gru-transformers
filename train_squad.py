@@ -36,20 +36,12 @@ elif hasattr(torch.backends, "mps") and torch.backends.mps.is_available():
     device = "mps" # apple silicon
 print(f"Using device: {device}")
 
-"""
 # Optimizer configurations
 max_lr = 6e-4 * 3
 min_lr = max_lr * 0.1
 warmup_steps = 5000
 epochs = 30
 B = 16 # batch size
-
-"""
-# Testing configs
-max_lr = 1e-3 
-min_lr = max_lr * 0.1
-epochs = 10
-B = 10 
 
 # Model configurations
 n_layer = 2
@@ -74,13 +66,9 @@ print(f"Model size: {model_size} parameters")
 model.to(device)
 
 # num examples could be set here if needed for debugging 
-NUM_EXAMPLES = 1000
-train_loader, val_loader = get_squad_v2_dataloaders(tokenizer, batch_size=B, num_examples=NUM_EXAMPLES)
-references = get_squad_v2_validation_references(num_examples=NUM_EXAMPLES)
-"""
 train_loader, val_loader = get_squad_v2_dataloaders(tokenizer, batch_size=B)
 references = get_squad_v2_validation_references()
-"""
+
 squad_metric = load("squad_v2")
 if use_compile:
     model = torch.compile(model)
@@ -95,9 +83,6 @@ eval_every = 5 # Every n epochs, evaluate EM and F1
 
 optimizer = torch.optim.AdamW(model.parameters(), lr=1e-4, fused=use_fused)
 num_training_steps = epochs * len(train_loader)  # Total number of steps
-
-#remove if set before
-warmup_steps = int(0.1 * num_training_steps)
 
 scheduler = get_cosine_schedule_with_warmup(optimizer, num_warmup_steps=warmup_steps, num_training_steps=num_training_steps)
 
