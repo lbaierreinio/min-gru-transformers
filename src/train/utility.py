@@ -38,11 +38,11 @@ def train(model, train_dataloader, val_dataloader, num_epochs, loss_fn, learning
         model.train()
         total_loss = 0.0
         
-        for batch in train_dataloader:
+        for i, batch in enumerate(train_dataloader):
             input = batch['input_ids'].to(device)
             labels = batch['labels'].to(device)
             mask = ~batch['attention_mask'].to(device).bool()
-            torch.autograd.set_detect_anomaly(True)
+            #torch.autograd.set_detect_anomaly(True)
             t0 = time.time()
             # Backward & forward pass
             output = model(input, mask=mask)
@@ -51,7 +51,7 @@ def train(model, train_dataloader, val_dataloader, num_epochs, loss_fn, learning
             loss.backward()
 
             # Gradient accumulation every i batches (ensure number of batches divisible by i)
-            if steps % accumulate_every_i == 0:
+            if i % accumulate_every_i == 0:
                 optimizer.step()
                 optimizer.zero_grad()
             
