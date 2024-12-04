@@ -7,6 +7,8 @@ from transformers import AutoTokenizer
 from transformers import get_cosine_schedule_with_warmup
 from tqdm import tqdm
 
+import torch.profiler
+
 from models.MinGRUSquadQA import MinGRUSquadQA, MinGRUSquadQAConfig
 from utils.squad_dataloader import get_squad_v2_dataloaders, get_squad_v2_validation_references
 
@@ -63,8 +65,10 @@ print(f"Model size: {model_size} parameters")
 
 model.to(device)
 
+# num examples could be set here if needed for debugging 
 train_loader, val_loader = get_squad_v2_dataloaders(tokenizer, batch_size=B)
 references = get_squad_v2_validation_references()
+
 squad_metric = load("squad_v2")
 if use_compile:
     model = torch.compile(model)
@@ -79,8 +83,8 @@ eval_every = 5 # Every n epochs, evaluate EM and F1
 
 optimizer = torch.optim.AdamW(model.parameters(), lr=1e-4, fused=use_fused)
 num_training_steps = epochs * len(train_loader)  # Total number of steps
-scheduler = get_cosine_schedule_with_warmup(optimizer, num_warmup_steps=warmup_steps, num_training_steps=num_training_steps)
 
+scheduler = get_cosine_schedule_with_warmup(optimizer, num_warmup_steps=warmup_steps, num_training_steps=num_training_steps)
 
 def forward_batch(batch):
     # Given a batch, format the data and forward through model to get logits and loss
@@ -167,18 +171,37 @@ def get_predictions(batch, logits):
 
 for i in range(epochs):
     t0 = time.time()
+
+    # resets memory to measure usage for that particular epoch
+    if device == "cuda":
+        torch.cuda.reset_peak_memory_stats(device=device)
+
     # optimize
-    model.train()
     loss_accum = 0.0
     tokens_processed = 0
-    for batch in tqdm(train_loader):
-        optimizer.zero_grad()
-        logits, loss = forward_batch(batch)
-        loss_accum += loss.detach()
-        loss.backward()
-        optimizer.step()
-        scheduler.step()
-        tokens_processed += batch["input_ids"].shape[0] * batch["input_ids"].shape[1] # batch_size * sequence_length
+    epoch_flops = 0
+
+    model.train()
+    with torch.profiler.profile(
+        activities=[
+            torch.profiler.ProfilerActivity.CPU,
+            torch.profiler.ProfilerActivity.CUDA
+        ] if torch.cuda.is_available() else [torch.profiler.ProfilerActivity.CPU],
+        record_shapes=False,
+        profile_memory=True,
+        with_flops=True,
+    ) as prof:
+        for batch_idx, batch in enumerate(tqdm(train_loader)):
+            optimizer.zero_grad()
+            logits, loss = forward_batch(batch)
+            loss_accum += loss.detach()
+            loss.backward()
+            optimizer.step()
+            scheduler.step()
+            tokens_processed += batch["input_ids"].shape[0] * batch["input_ids"].shape[1] # batch_size * sequence_length
+
+    epoch_flops += sum(
+    [event.flops for event in prof.key_averages() if event.flops is not None]) # returns flops for current epoch
         
     # Print/Log training metrics
     if torch.cuda.is_available():
@@ -189,7 +212,21 @@ for i in range(epochs):
     cur_lr = scheduler.get_last_lr()[0]
     dt = t1 - t0
     tok_per_sec = tokens_processed / dt
-    epoch_metrics = f"[Train] Epoch {i:4d} | loss: {avg_loss:.6f} | cur_lr: {cur_lr:.6f} | dt: {dt:.2f} | tok/sec: {tok_per_sec:.2f}"
+    flops_in_tera = epoch_flops / 1e12
+
+    if device == "cuda":
+        max_memory = torch.cuda.max_memory_allocated(device=device) / (1024 * 1024)  # convert to MB
+    else:
+        max_memory = max(
+        event.cpu_memory_usage
+        for event in prof.key_averages()
+        if event.cpu_memory_usage is not None)
+        max_memory = max_memory / (1024 * 1024)
+
+    epoch_metrics = (
+        f"[Train] Epoch {i:4d} | loss: {avg_loss:.6f} | cur_lr: {cur_lr:.6f} "
+        f"| dt: {dt:.2f} | tok/sec: {tok_per_sec:.2f} | Memory (MB): {max_memory:.6f} | FLOPs (T): {flops_in_tera:.6f}"
+    )
     print(epoch_metrics)
     with open(log_file, "a") as f:
         f.write(f"{epoch_metrics}\n")
