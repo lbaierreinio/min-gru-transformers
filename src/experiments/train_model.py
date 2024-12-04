@@ -15,9 +15,8 @@ class MinGRUConfig:
     Configuration for minGRU model.
     """
     name: str = 'mingru'
-    embedding_dim: int = 128
-    expansion_factor: float = 2.5
     num_layers: int = 2
+    embedding_dim: int = 256
     bidirectional: bool = True
 
 @dataclass
@@ -28,9 +27,9 @@ class TransformerConfig:
     name: str = 'transformer'
     num_heads: int = 4
     num_layers: int = 4
-    num_hiddens: int = 128
-    ffn_num_hiddens: int = 512
-    chunk_size: int = 128
+    num_hiddens: int = 256
+    ffn_num_hiddens: int = 1024
+    chunk_size: int = 32
 
 
 @dataclass
@@ -39,9 +38,9 @@ class TrainConfig:
     Configuration for training.
     """
     learning_rate: float = 1e-4
-    num_epochs: int = 100
+    num_epochs: int = 200
     early_stopping: bool = True
-    num_classes: int = 8
+    num_classes: int = 4
     early_stopping_threshold: float = 0.95
 
 
@@ -73,7 +72,7 @@ def main():
     dataset_config = DatasetConfig()
 
     tokenizer = AutoTokenizer.from_pretrained(
-        dataset_config.tokenizer, model_max_length=dataset_config.sequence_length)
+        dataset_config.tokenizer, model_max_length=2048)
 
     dataset = torch.load(dataset_path)
     train_dataloader, val_dataloader = get_split(dataset)
@@ -81,6 +80,7 @@ def main():
     # (3) Load Training Parameters
     train_config = TrainConfig()
     loss_fn = torch.nn.CrossEntropyLoss()
+
 
     # (4) Define Model and Configuration
     vocab_size = tokenizer.vocab_size
@@ -104,7 +104,7 @@ def main():
             num_hiddens=config.num_hiddens,
             ffn_num_hiddens=config.ffn_num_hiddens,
             chunk_size=config.chunk_size,
-            max_len=512,
+            max_len=128,
         ).to(device)
 
     num_parameters = sum(p.numel() for p in model.parameters())

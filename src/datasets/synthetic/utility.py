@@ -47,7 +47,7 @@ def generate_dataset8(*, seq_len, num_examples, grammars, alpha, beta, k_split, 
         order = orders[label]
 
         # Draw sequence length from beta distribution
-        cur_seq_len =  max(32, int(np.random.beta(alpha, beta) * seq_len))
+        cur_seq_len = max(31, int(np.random.beta(alpha, beta) * seq_len))
 
         # Draw split of sequences from normal distribution centered around middle of sequence
         split = np.clip(int(np.random.normal(cur_seq_len // 2,
@@ -57,17 +57,17 @@ def generate_dataset8(*, seq_len, num_examples, grammars, alpha, beta, k_split, 
             grammars[order[0]], split) + generate_grammar(grammars[order[1]], cur_seq_len - split)
 
         # Draw indicator tokens from normal distribution centered around middle of sequence
-        idx_one = get_indicator_idx(cur_seq_len, k_indicator)
-        idx_two = get_indicator_idx(cur_seq_len, k_indicator)
-        if idx_one == idx_two:
-            idx_two += np.random.choice([-1, 1])
+        #idx_one = get_indicator_idx(cur_seq_len, k_indicator)
+        #idx_two = get_indicator_idx(cur_seq_len, k_indicator)
+       #if idx_one == idx_two:
+          #  idx_two += np.random.choice([-1, 1])
 
-        sequence[idx_one] = np.random.choice(indicators)
-        sequence[idx_two] = np.random.choice(indicators)
+        #sequence[idx_one] = np.random.choice(indicators)
+       #sequence[idx_two] = np.random.choice(indicators)
 
         # Compute label
-        if sequence[idx_one] == sequence[idx_two]:
-            label += len(orders)
+        #if sequence[idx_one] == sequence[idx_two]:
+         #   label += len(orders)
 
         examples[_] = sequence
 
