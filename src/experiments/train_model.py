@@ -29,7 +29,7 @@ class TransformerConfig:
     num_layers: int = 4
     num_hiddens: int = 256
     ffn_num_hiddens: int = 1024
-    chunk_size: int = 32
+    chunk_size: int = 64
 
 
 @dataclass
@@ -38,7 +38,7 @@ class TrainConfig:
     Configuration for training.
     """
     learning_rate: float = 1e-4
-    num_epochs: int = 100
+    num_epochs: int = 5
     early_stopping: bool = True
     num_classes: int = 8
     early_stopping_threshold: float = 0.95

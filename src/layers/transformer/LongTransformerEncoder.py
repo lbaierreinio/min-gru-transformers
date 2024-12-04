@@ -37,9 +37,10 @@ class LongTransformerEncoder(nn.Module):
             if mask is not None:
                 chunked_mask = mask.view(batch_size, num_chunks, self.chunk_size)
                 chunked_mask = chunked_mask.reshape(batch_size * num_chunks, self.chunk_size)
+                chunked_mask[chunked_mask.all(dim=1)] = False # Attend to rows that are exclusively padding tokens (as they will be masked out later)
 
         for layer in self.layers:
-            x = layer(x)# , mask=chunked_mask if is_chunked else mask)
+            x = layer(x, mask=chunked_mask if is_chunked else mask)
         if is_chunked:
             x = x.view(num_chunks, -1, self.chunk_size, num_hiddens) # (N, B, C, H)
             x = x.reshape(batch_size, -1, num_hiddens) # (B, N * C, H)

@@ -24,7 +24,6 @@ class TransformerEncoderBlock(nn.Module):
     def forward(self, x, mask=None):
         skip1 = x
         x, _ = self.attention(x, x, x, mask)
-
         skip2 = self.layernorm1(self.dropout1(x) + skip1)
         # Position-Wise FNN (Sublayer 2)
         x = self.ffn2(self.relu(self.ffn1(skip2)))

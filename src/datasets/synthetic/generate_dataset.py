@@ -13,8 +13,8 @@ class DatasetConfig:
     """
     Configuration of the experiment.
     """
-    min_seq_len: int = 128
-    max_seq_len: int = 512
+    min_seq_len: int = 32
+    max_seq_len: int = 128
     num_examples: int = 2000
     tokenizer: str = 'bert-base-uncased'
     alpha: int = 1
@@ -71,7 +71,7 @@ def main():
         grammars=grammars,
     )
 
-    transformer_dataset = TransformerSyntheticDataset(examples, labels, tokenizer, config.max_sequence_length)
+    transformer_dataset = TransformerSyntheticDataset(examples, labels, tokenizer, config.max_seq_len)
     
     mingru_dataset = MinGRUSyntheticDataset(examples, labels, tokenizer)
 
