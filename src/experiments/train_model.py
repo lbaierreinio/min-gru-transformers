@@ -29,7 +29,7 @@ class TransformerConfig:
     num_layers: int = 4
     num_hiddens: int = 256
     ffn_num_hiddens: int = 1024
-    chunk_size: int = 32
+    chunk_size: int = 64
 
 
 @dataclass

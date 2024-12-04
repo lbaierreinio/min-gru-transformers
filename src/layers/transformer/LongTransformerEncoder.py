@@ -29,24 +29,20 @@ class LongTransformerEncoder(nn.Module):
         x = self.embedding(x) * math.sqrt(self.num_hiddens)
         x = self.pos_encoder(x)
 
-        num_chunks = int(x.shape[1] // self.chunk_size)
-        batch_size, _, num_hiddens = x.shape
+        batch_size, max_seq_len, num_hiddens = x.shape
+        num_chunks = int(max_seq_len // self.chunk_size)
 
-        x_chunks = x.view(batch_size, num_chunks,
+        x = x.view(batch_size, num_chunks,
                           self.chunk_size, num_hiddens)  # (Batch, Number of Chunks, Chunk Size, Hidden Dimension)
-        x_chunks = x_chunks.transpose(0, 1)  # (N, B, C, H)
-        x_chunks = x_chunks.reshape(-1, self.chunk_size, num_hiddens) # (N * B, C, H)
-
-        if mask is not None:
-            chunked_mask = mask.view(batch_size, num_chunks, self.chunk_size) # (B, N, C)
-            chunked_mask = chunked_mask.transpose(0,1) # (N,B,C)
-            chunked_mask = chunked_mask.reshape(batch_size * num_chunks, self.chunk_size) # (N * B, C)
+        x = x.transpose(0, 1)  # (N, B, C, H)
+        x = x.reshape(-1, self.chunk_size, num_hiddens) # (N * B, C, H)
 
         for layer in self.layers:
-            x_chunks = layer(x_chunks, mask, chunked_mask if mask is not None else None)
+            x = layer(x)
+
+        x = x.view(num_chunks, -1, self.chunk_size, num_hiddens) # (N, B, C, H)
+        x = x.transpose(1, 0) # (B, N, C, H)
+        x = x.reshape(batch_size, -1, num_hiddens) # (B, N * C, H)
         
-        x_out = x_chunks.view(num_chunks, -1, self.chunk_size, num_hiddens) # (N, B, C, H)
-        x_out = x_out.transpose(1, 0) # (B, N, C, H)
-        x_out = x_out.reshape(batch_size, -1, num_hiddens) # (B, N * C, H)
-        x_out = self.out(x_out) # (B, N * C, H)
-        return x_out[:, -1] # (B, H)
+        x = self.out(x, mask)
+        return x[:, -1] # (B, H)
