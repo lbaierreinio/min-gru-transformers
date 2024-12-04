@@ -72,8 +72,8 @@ def get_squad_v2_dataloaders(tokenizer, batch_size, num_examples=None):
 
     # selects a subset of examples, if arg is specified 
     if num_examples is not None:
-        train_dataset = train_dataset.select(range(num_examples))
-        val_dataset = val_dataset.select(range(num_examples))
+        train_dataset = train_dataset.select(range(int(0.8*num_examples)))
+        val_dataset = val_dataset.select(range(int(0.2*num_examples)))
 
     # Preprocess and tokenize
     cols_to_remove = set(train_dataset.column_names)
@@ -108,12 +108,11 @@ def get_squad_v2_dataloaders(tokenizer, batch_size, num_examples=None):
 
     return train_dataloader, val_dataloader
 
-
 def get_squad_v2_validation_references(num_examples=None):
     val_dataset = load_dataset("rajpurkar/squad_v2", split="validation")
 
     if num_examples is not None:
-      val_dataset = val_dataset.select(range(num_examples))
+      val_dataset = val_dataset.select(range(int(0.2*num_examples)))
 
     # Remove everything except id and answers
     cols_to_remove = val_dataset.column_names
