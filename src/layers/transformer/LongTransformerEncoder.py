@@ -43,14 +43,10 @@ class LongTransformerEncoder(nn.Module):
             chunked_mask = chunked_mask.reshape(batch_size * num_chunks, self.chunk_size) # (N * B, C)
 
         for layer in self.layers:
-            x_chunks = layer(x_chunks, chunked_mask if mask is not None else None)
-        print(x_chunks[0])
-        x_out = x_chunks.view(num_chunks, batch_size, self.chunk_size, num_hiddens) # (N, B, C, H)
+            x_chunks = layer(x_chunks, mask, chunked_mask if mask is not None else None)
+        
+        x_out = x_chunks.view(num_chunks, -1, self.chunk_size, num_hiddens) # (N, B, C, H)
         x_out = x_out.transpose(1, 0) # (B, N, C, H)
         x_out = x_out.reshape(batch_size, -1, num_hiddens) # (B, N * C, H)
-        print(x_out[0])
-        x_out = self.out(x_out, mask=mask) # (B, N * C, H)
-        print(x_out[0])
-        print(x_out[:, -1])
-        exit()
+        x_out = self.out(x_out) # (B, N * C, H)
         return x_out[:, -1] # (B, H)
