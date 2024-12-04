@@ -23,7 +23,7 @@ class TransformerEncoderBlock(nn.Module):
 
     def forward(self, x, mask=None):
         skip1 = x
-        x, _ = self.attention(x, x, x, key_padding_mask=mask)  # Self Attention (Sublayer One) TODO: Verify key-padding-mask
+        x, _ = self.attention(x, x, x, key_padding_mask=mask)
         skip2 = self.layernorm1(self.dropout1(x) + skip1)
         # Position-Wise FNN (Sublayer 2)
         x = self.ffn2(self.relu(self.ffn1(skip2)))

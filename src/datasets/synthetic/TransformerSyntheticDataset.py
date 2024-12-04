@@ -3,7 +3,7 @@ import torch
 
 
 class TransformerSyntheticDataset(Dataset):
-    def __init__(self, sequences, labels, tokenizer, max_length=2048, chunk_size=512, insert_cls_tokens=False):
+    def __init__(self, sequences, labels, tokenizer, max_length=2048):
 
         self.encodings = tokenizer(
             [' '.join(seq) for seq in sequences],

@@ -16,14 +16,12 @@ class LongTransformerEncoder(nn.Module):
         self.embedding = nn.Embedding(vocab_size, num_hiddens)
         self.pos_encoder = PositionalEncoding(num_hiddens, max_len=max_len)
 
-        self.encoder_layer = nn.TransformerEncoderLayer(d_model=num_hiddens, nhead=num_heads, dim_feedforward=ffn_num_hiddens, dropout=dropout, activation='relu', batch_first=True)
-        self.transformer_encoder = nn.TransformerEncoder(self.encoder_layer, num_layers=num_layers)
-
         # Encoder Layers
         self.layers = nn.ModuleList([
             TransformerEncoderBlock(num_heads, num_hiddens, ffn_num_hiddens, dropout, bias) for _ in range(num_layers)
         ])
 
+        # Bidirectional MinGRU for output
         self.min_gru_out = BiMinGRU(num_hiddens, num_hiddens, num_layers=1, bidirectional=True)
 
     def forward(self, x, mask=None):

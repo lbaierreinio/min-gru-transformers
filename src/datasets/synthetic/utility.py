@@ -47,7 +47,7 @@ def generate_dataset8(*, seq_len, num_examples, grammars, alpha, beta, k_split, 
         order = orders[label]
 
         # Draw sequence length from beta distribution
-        cur_seq_len = max(31, int(np.random.beta(alpha, beta) * seq_len))
+        cur_seq_len = max(32, int(np.random.beta(alpha, beta) * seq_len))
 
         # Draw split of sequences from normal distribution centered around middle of sequence
         split = np.clip(int(np.random.normal(cur_seq_len // 2,
