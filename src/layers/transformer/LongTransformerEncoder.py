@@ -1,5 +1,4 @@
 import math
-import torch
 import torch.nn as nn
 from layers.rnn.BiMinGRU import BiMinGRU
 from layers.transformer.PositionalEncoding import PositionalEncoding
@@ -32,15 +31,17 @@ class LongTransformerEncoder(nn.Module):
             batch_size, max_seq_len, num_hiddens = x.shape
             num_chunks = int(max_seq_len // self.chunk_size)
             x = x.view(batch_size, num_chunks, self.chunk_size, num_hiddens)  # (Batch, Number of Chunks, Chunk Size, Hidden Dimension)
-            x = x.transpose(0, 1)  # (N, B, C, H)
             x = x.reshape(-1, self.chunk_size, num_hiddens) # (N * B, C, H)
+            
+            chunked_mask = None
+            if mask is not None:
+                chunked_mask = mask.view(batch_size, num_chunks, self.chunk_size)
+                chunked_mask = chunked_mask.reshape(batch_size * num_chunks, self.chunk_size)
 
         for layer in self.layers:
-            x = layer(x)
+            x = layer(x, mask=chunked_mask if is_chunked else mask)
         if is_chunked:
             x = x.view(num_chunks, -1, self.chunk_size, num_hiddens) # (N, B, C, H)
-            x = x.transpose(1, 0) # (B, N, C, H)
             x = x.reshape(batch_size, -1, num_hiddens) # (B, N * C, H)
-        
         x = self.out(x, mask)
         return x[:, -1] # (B, H)

@@ -29,7 +29,7 @@ def evaluate(model, dataloader, loss_fn, evaluation_type='Validation'):
         return total_loss, accuracy
 
 
-def train(model, train_dataloader, val_dataloader, num_epochs, loss_fn, learning_rate, *, early_stopping_threshold=None, check_every_i=1):
+def train(model, train_dataloader, val_dataloader, num_epochs, loss_fn, learning_rate, *, early_stopping_threshold=None, check_every_i=1, accumulate_every_i=2):
     optimizer = torch.optim.Adam(model.parameters(), lr=learning_rate)
     steps = 0
     total_time = 0
@@ -37,19 +37,23 @@ def train(model, train_dataloader, val_dataloader, num_epochs, loss_fn, learning
     for epoch in range(0, num_epochs):
         model.train()
         total_loss = 0.0
+        
         for batch in train_dataloader:
             input = batch['input_ids'].to(device)
             labels = batch['labels'].to(device)
             mask = ~batch['attention_mask'].to(device).bool()
-
+            torch.autograd.set_detect_anomaly(True)
             t0 = time.time()
-            # Step
-            optimizer.zero_grad()
+            # Backward & forward pass
             output = model(input, mask=mask)
             loss = loss_fn(output, labels)
-            total_loss += loss.detach()
+            total_loss += loss.detach().item()
             loss.backward()
-            optimizer.step()
+
+            # Gradient accumulation every i batches (ensure number of batches divisible by i)
+            if steps % accumulate_every_i == 0:
+                optimizer.step()
+                optimizer.zero_grad()
             
             if torch.cuda.is_available():
                 torch.cuda.synchronize()

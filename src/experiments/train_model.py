@@ -15,7 +15,7 @@ class MinGRUConfig:
     Configuration for minGRU model.
     """
     name: str = 'mingru'
-    num_layers: int = 2
+    num_layers: int = 3
     embedding_dim: int = 256
     bidirectional: bool = True
 
