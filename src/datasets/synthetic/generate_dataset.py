@@ -13,7 +13,8 @@ class DatasetConfig:
     """
     Configuration of the experiment.
     """
-    sequence_length: int = 128
+    min_seq_len: int = 128
+    max_seq_len: int = 512
     num_examples: int = 2000
     tokenizer: str = 'bert-base-uncased'
     alpha: int = 1
@@ -44,23 +45,24 @@ def main():
 
     grammars = [
         {
-            'S': [(0.94, 'A'), (0.02, 'B'), (0.02, 'C'), (0.02, 'D')],
-            'A': [(0.94, 'A'), (0.02, 'B'), (0.02, 'C'), (0.02, 'D')],
-            'B': [(0.94, 'A'), (0.02, 'B'), (0.02, 'C'), (0.02, 'D')],
-            'C': [(0.94, 'A'), (0.02, 'B'), (0.02, 'C'), (0.02, 'D')],
-            'D': [(0.94, 'A'), (0.02, 'B'), (0.02, 'C'), (0.02, 'D')],
+            'S': [(0.25, 'A'), (0.25, 'B'), (0.25, 'C'), (0.25, 'D')],
+            'A': [(0.25, 'A'), (0.25, 'B'), (0.25, 'C'), (0.25, 'D')],
+            'B': [(0.25, 'A'), (0.25, 'B'), (0.25, 'C'), (0.25, 'D')],
+            'C': [(0.25, 'A'), (0.25, 'B'), (0.25, 'C'), (0.25, 'D')],
+            'D': [(0.25, 'A'), (0.25, 'B'), (0.25, 'C'), (0.25, 'D')],
         },
         {
             'S': [(0.25, 'A'), (0.25, 'B'), (0.25, 'C'), (0.25, 'D')],
-            'A': [(0.02, 'A'), (0.94, 'B'), (0.02, 'C'), (0.02, 'D')],
-            'B': [(0.02, 'A'), (0.02, 'B'), (0.94, 'C'), (0.02, 'D')],
-            'C': [(0.02, 'A'), (0.02, 'B'), (0.02, 'C'), (0.94, 'D')],
-            'D': [(0.94, 'A'), (0.02, 'B'), (0.02, 'C'), (0.02, 'D')],
+            'A': [(0.05, 'A'), (0.85, 'B'), (0.05, 'C'), (0.05, 'D')],
+            'B': [(0.05, 'A'), (0.05, 'B'), (0.85, 'C'), (0.05, 'D')],
+            'C': [(0.05, 'A'), (0.05, 'B'), (0.05, 'C'), (0.85, 'D')],
+            'D': [(0.85, 'A'), (0.05, 'B'), (0.05, 'C'), (0.05, 'D')],
         },
     ]
 
     examples, labels = generate_dataset8(
-        seq_len=config.sequence_length,
+        min_seq_len=config.min_seq_len,
+        max_seq_len=config.max_seq_len,
         num_examples=config.num_examples,
         alpha=config.alpha,
         beta=config.beta,
@@ -69,7 +71,7 @@ def main():
         grammars=grammars,
     )
 
-    transformer_dataset = TransformerSyntheticDataset(examples, labels, tokenizer, config.sequence_length)
+    transformer_dataset = TransformerSyntheticDataset(examples, labels, tokenizer, config.max_sequence_length)
     
     mingru_dataset = MinGRUSyntheticDataset(examples, labels, tokenizer)
 

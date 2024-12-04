@@ -31,10 +31,11 @@ the model is asked to solve two tasks simultaneously:
 '''
 
 
-def generate_dataset8(*, seq_len, num_examples, grammars, alpha, beta, k_split, k_indicator, seed=42):
+def generate_dataset8(*, min_seq_len, max_seq_len, num_examples, grammars, alpha, beta, k_split, k_indicator, seed=42):
     assert len(grammars) == 2, "Must provide two distinct grammars"
-    assert seq_len >= 32, "Sequence length must be at least 32"
+    assert min_seq_len >= 32, "Sequence length must be at least 32"
     assert num_examples > 100, "Number of examples must be greater than 100"
+    assert min_seq_len < max_seq_len, "Minimum sequence length must be less than maximum sequence length"
     # Generate labels
     indicators = ['X', 'Y']
     orders = [[0, 1], [1, 0], [1, 1], [0, 0]]
@@ -47,7 +48,7 @@ def generate_dataset8(*, seq_len, num_examples, grammars, alpha, beta, k_split, 
         order = orders[label]
 
         # Draw sequence length from beta distribution
-        cur_seq_len = max(32, int(np.random.beta(alpha, beta) * seq_len))
+        cur_seq_len = min_seq_len + int(np.random.beta(alpha, beta) * (max_seq_len - min_seq_len))
 
         # Draw split of sequences from normal distribution centered around middle of sequence
         split = np.clip(int(np.random.normal(cur_seq_len // 2,

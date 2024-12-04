@@ -103,7 +103,7 @@ def main():
             num_hiddens=config.num_hiddens,
             ffn_num_hiddens=config.ffn_num_hiddens,
             chunk_size=config.chunk_size,
-            max_len=dataset_config.sequence_length
+            max_len=dataset_config.max_seq_len
         ).to(device)
 
     num_parameters = sum(p.numel() for p in model.parameters())
