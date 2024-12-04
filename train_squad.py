@@ -8,11 +8,9 @@ from transformers import get_cosine_schedule_with_warmup
 from tqdm import tqdm
 
 from models.MinGRUSquadQA import MinGRUSquadQA, MinGRUSquadQAConfig
-from utils.squad_dataloader import get_squad_v2_dataloaders, get_squad_v2_validation_references
+from utils.squad_dataloader import get_squad_dataloaders, get_squad_validation_references
 
 # TODO: may want to do graident accumulation
-# TODO: explore GRU bidirectionality
-# TODO: may want to checkpoint model at the end (/ between epochs)
 # TODO: may want different accuracies for answerable and non-answerable
 # ########################################################
 # Set configurations
@@ -22,8 +20,8 @@ torch.manual_seed(1337)
 if torch.cuda.is_available():
     torch.cuda.manual_seed(1337)
 use_fused = torch.cuda.is_available()
-use_compile = False
-ampere_gpu = False
+use_compile = True
+ampere_gpu = True
 if ampere_gpu:
     torch.set_float32_matmul_precision("high") # use tf32 where possible
 # autodetect the device
@@ -39,12 +37,13 @@ max_lr = 6e-4 * 3
 min_lr = max_lr * 0.1
 warmup_steps = 5000
 epochs = 30
-B = 16 # batch size
+B = 64 # batch size
 
 # Model configurations
-n_layer = 2
-hidden_dim = 256
-classification_head_dim = 256
+n_layer = 8
+hidden_dim = 768
+classification_head_dim = 768
+bidirectional=True
 #########################################################
 # Create model
 tokenizer = AutoTokenizer.from_pretrained("bert-base-cased")
@@ -52,7 +51,8 @@ config = MinGRUSquadQAConfig(
     vocab_size=tokenizer.vocab_size,
     n_layer=n_layer,
     hidden_dim=hidden_dim,
-    classification_head_dim=classification_head_dim
+    classification_head_dim=classification_head_dim,
+    bidirectional=bidirectional
 )
 model = MinGRUSquadQA(config)
 
@@ -63,9 +63,12 @@ print(f"Model size: {model_size} parameters")
 
 model.to(device)
 
-train_loader, val_loader = get_squad_v2_dataloaders(tokenizer, batch_size=B)
-references = get_squad_v2_validation_references()
-squad_metric = load("squad_v2")
+squad_version = "squad" # "squad" for v1, "squad_v2" for v2
+if squad_version not in ["squad", "squad_v2"]:
+    raise Exception("Invalid SQuAD version provided")
+train_loader, val_loader = get_squad_dataloaders(tokenizer, batch_size=B, version=squad_version)
+references = get_squad_validation_references(version=squad_version)
+squad_metric = load(squad_version)
 if use_compile:
     model = torch.compile(model)
 
@@ -73,8 +76,14 @@ if use_compile:
 log_dir = "log"
 os.makedirs(log_dir, exist_ok=True)
 log_file = os.path.join(log_dir, f"log.txt")
-with open(log_file, "w") as f: # open for writing to clear the file
-    pass
+with open(log_file, "w") as f: # this clears the existing logs
+    f.write("Training hyperparamaters:\n")
+    f.write(f"    {max_lr=}, {min_lr=}, {warmup_steps=}, {epochs=}, batch_size={B}\n")
+    f.write(f"Model configurations:\n")
+    f.write(f"    {n_layer=}, {hidden_dim=}, {classification_head_dim=}, {bidirectional=}\n")
+    f.write(f"    {model_size=}\n")
+    f.write(f"Training on task: {squad_version}\n")
+
 eval_every = 5 # Every n epochs, evaluate EM and F1
 
 optimizer = torch.optim.AdamW(model.parameters(), lr=1e-4, fused=use_fused)
@@ -118,15 +127,15 @@ def get_predictions(batch, logits):
     start_logits, end_logits = logits[:,:,0], logits[:,:,1] # [B, T]
 
     # Only consider best top_k start and end positions for efficieny
-    top_k = 20
+    top_k = 10
     top_start_scores, top_start_indices = torch.topk(start_logits, k=top_k, dim=1) # [B, top_k]
     top_end_scores, top_end_indices = torch.topk(end_logits, k=top_k, dim=1) # [B, top_k]
 
     predictions = []
     for b in range(B):
         # Compute all pairwise scores between the top k best start/end positions and take the best
-        # Use "no answer" prediction as default value
-        max_score = start_logits[b, 0] + end_logits[b, 0]
+        # Use "no answer" prediction as default value for v2
+        max_score = (start_logits[b, 0] + end_logits[b, 0]) if squad_version == "squad_v2" else float("-inf")
         best_range = (0, 0)
         for i in range(top_k):
             for j in range(top_k):
@@ -151,15 +160,18 @@ def get_predictions(batch, logits):
                     continue
 
                 # 
-                score = top_start_scores[b, i]= + top_end_scores[b, j]
+                score = top_start_scores[b, i] + top_end_scores[b, j]
                 if score > max_score:
                     max_score = score
                     best_range = (start_idx, end_idx)
         if best_range == (0,0):
-            prediction = {"id": ids[b], "prediction_text": "", "no_answer_probability": 1.0}
+            prediction = {"id": ids[b], "prediction_text": ""}
         else:
             prediction_text = tokenizer.decode(input_ids[b][best_range[0]:best_range[1]+1])
-            prediction = {"id": ids[b], "prediction_text": prediction_text, "no_answer_probability": 0.}
+            prediction = {"id": ids[b], "prediction_text": prediction_text}
+        
+        if squad_version == "squad_v2":
+            prediction["no_answer_probability"] = 1.0 if best_range == (0,0) else 0.
         predictions.append(prediction)
 
     return predictions
@@ -185,14 +197,10 @@ for i in range(epochs):
         # wait for all cuda processes to finish to get accurate timing
         torch.cuda.synchronize()
     t1 = time.time()
-    avg_loss = loss_accum / len(train_loader)
+    avg_train_loss = loss_accum / len(train_loader)
     cur_lr = scheduler.get_last_lr()[0]
     dt = t1 - t0
     tok_per_sec = tokens_processed / dt
-    epoch_metrics = f"[Train] Epoch {i:4d} | loss: {avg_loss:.6f} | cur_lr: {cur_lr:.6f} | dt: {dt:.2f} | tok/sec: {tok_per_sec:.2f}"
-    print(epoch_metrics)
-    with open(log_file, "a") as f:
-        f.write(f"{epoch_metrics}\n")
 
     # eval
     model.eval()
@@ -205,18 +213,29 @@ for i in range(epochs):
         for batch in tqdm(val_loader):
             logits, loss = forward_batch(batch)
             val_loss_accum += loss.detach()
-            # Only perform eval every 5 epochs
+            # Only perform eval every few epochs
             if should_get_predictions:
                 predictions.extend(get_predictions(batch, logits))
         
         avg_val_loss = val_loss_accum / len(val_loader)
         if should_get_predictions:
             results = squad_metric.compute(predictions=predictions, references=references)
-            em, f1 = results["exact"], results["f1"]
-            epoch_metrics = f"[Val] Epoch {i:4d} | val_loss: {avg_val_loss:.4f} | EM: {em:.4f} | F1: {f1:.4f}"
+            em_key = "exact" if squad_version == "squad_v2" else "exact_match"
+            em, f1 = results[em_key], results["f1"]
+            em_str = f"EM: {em:.4f}"
+            f1_str = f"F1: {f1:.4f}"
         else:
-            epoch_metrics = f"[Val] Epoch {i:4d} | val_loss: {avg_val_loss:.4f} | EM: N/A | F1: N/A"
-            
+            em_str = f"EM: N/A"
+            f1_str = f"F1: N/A"
+        epoch_metrics = f"Epoch {i:4d} | train_loss: {avg_train_loss:.6f} | val_loss: {avg_val_loss:.6f} | cur_lr: {cur_lr:.6f} | dt (train): {dt:.2f} | tok/sec (train): {tok_per_sec:.2f} | {em_str} | {f1_str}"
         print(epoch_metrics)
         with open(log_file, "a") as f:
             f.write(f"{epoch_metrics}\n")
+
+# Save last model
+checkpoint = {
+    'model_state_dict': model.state_dict(),
+    'optimizer_state_dict': optimizer.state_dict(),
+}
+torch.save(checkpoint, 'checkpoint.pth')
+print("Checkpoint saved!")

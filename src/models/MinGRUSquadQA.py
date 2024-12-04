@@ -66,7 +66,7 @@ class MinGRUSquadQA(nn.Module):
         start_pos_logits = logits[:,:,0]
         start_pos_targets = targets[:,0]
         end_pos_logits = logits[:,:,1]
-        end_pos_targets = targets[:, 1]
+        end_pos_targets = targets[:,1]
 
         if mask is not None:
             # Set the logits for the masked positions to -inf. This will ensure that
