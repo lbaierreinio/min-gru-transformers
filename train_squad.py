@@ -77,12 +77,12 @@ log_dir = "log"
 os.makedirs(log_dir, exist_ok=True)
 log_file = os.path.join(log_dir, f"log.txt")
 with open(log_file, "w") as f: # this clears the existing logs
-    f.write("Training hyperparamaters:")
+    f.write("Training hyperparamaters:\n")
     f.write(f"    {max_lr=}, {min_lr=}, {warmup_steps=}, {epochs=}, batch_size={B}\n")
-    f.write(f"Model configurations:")
-    f.write(f"    {n_layer=}, {hidden_dim=}, {classification_head_dim=}, {bidirectional=}")
-    f.write(f"    {model_size=}")
-    f.write(f"Training on task: {squad_version}")
+    f.write(f"Model configurations:\n")
+    f.write(f"    {n_layer=}, {hidden_dim=}, {classification_head_dim=}, {bidirectional=}\n")
+    f.write(f"    {model_size=}\n")
+    f.write(f"Training on task: {squad_version}\n")
 
 eval_every = 5 # Every n epochs, evaluate EM and F1
 
