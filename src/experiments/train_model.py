@@ -15,7 +15,7 @@ class MinGRUConfig:
     Configuration for minGRU model.
     """
     name: str = 'mingru'
-    num_layers: int = 3
+    num_layers: int = 2
     embedding_dim: int = 256
     bidirectional: bool = True
 
@@ -29,7 +29,7 @@ class TransformerConfig:
     num_layers: int = 4
     num_hiddens: int = 256
     ffn_num_hiddens: int = 1024
-    chunk_size: int = 64
+    chunk_size: int = 32
 
 
 @dataclass
@@ -38,7 +38,7 @@ class TrainConfig:
     Configuration for training.
     """
     learning_rate: float = 1e-4
-    num_epochs: int = 20
+    num_epochs: int = 100
     early_stopping: bool = True
     num_classes: int = 8
     early_stopping_threshold: float = 0.95
