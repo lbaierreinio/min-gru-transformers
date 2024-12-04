@@ -11,8 +11,6 @@ from models.MinGRUSquadQA import MinGRUSquadQA, MinGRUSquadQAConfig
 from utils.squad_dataloader import get_squad_dataloaders, get_squad_validation_references
 
 # TODO: may want to do graident accumulation
-# TODO: explore GRU bidirectionality
-# TODO: may want to checkpoint model at the end (/ between epochs)
 # TODO: may want different accuracies for answerable and non-answerable
 # ########################################################
 # Set configurations
@@ -45,6 +43,7 @@ B = 64 # batch size
 n_layer = 8
 hidden_dim = 768
 classification_head_dim = 768
+bidirectional=True
 #########################################################
 # Create model
 tokenizer = AutoTokenizer.from_pretrained("bert-base-cased")
@@ -52,7 +51,8 @@ config = MinGRUSquadQAConfig(
     vocab_size=tokenizer.vocab_size,
     n_layer=n_layer,
     hidden_dim=hidden_dim,
-    classification_head_dim=classification_head_dim
+    classification_head_dim=classification_head_dim,
+    bidirectional=bidirectional
 )
 model = MinGRUSquadQA(config)
 
@@ -76,8 +76,14 @@ if use_compile:
 log_dir = "log"
 os.makedirs(log_dir, exist_ok=True)
 log_file = os.path.join(log_dir, f"log.txt")
-with open(log_file, "w") as f: # open for writing to clear the file
-    pass
+with open(log_file, "w") as f: # this clears the existing logs
+    f.write("Training hyperparamaters:")
+    f.write(f"    {max_lr=}, {min_lr=}, {warmup_steps=}, {epochs=}, batch_size={B}\n")
+    f.write(f"Model configurations:")
+    f.write(f"    {n_layer=}, {hidden_dim=}, {classification_head_dim=}, {bidirectional=}")
+    f.write(f"    {model_size=}")
+    f.write(f"Training on task: {squad_version}")
+
 eval_every = 5 # Every n epochs, evaluate EM and F1
 
 optimizer = torch.optim.AdamW(model.parameters(), lr=1e-4, fused=use_fused)
