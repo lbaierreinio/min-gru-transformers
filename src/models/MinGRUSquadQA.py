@@ -12,6 +12,8 @@ class MinGRUSquadQAConfig:
     n_layer: int = 12
     hidden_dim: int = 768
     classification_head_dim: int = 768
+    dropout: int = 0.2
+    bidirectional: bool = False
 
 
 class MinGRUSquadQA(nn.Module):
@@ -22,7 +24,12 @@ class MinGRUSquadQA(nn.Module):
         # Produce contextualized embeddings for each sequence element
         self.encoder = nn.ModuleDict(dict(
             wte = nn.Embedding(config.vocab_size, config.hidden_dim),
-            layers = nn.ModuleList(MinGRUBlock(config.hidden_dim) for _ in range(config.n_layer)),
+            layers = nn.ModuleList(
+                MinGRUBlock(
+                    hidden_dim=config.hidden_dim,
+                    bidirectional=config.bidirectional,
+                    dropout=config.dropout
+                ) for _ in range(config.n_layer)),
             ln_f = nn.LayerNorm(config.hidden_dim),
         ))
         # Project each embedding into 2D space representing [start_prob, end_prod]
