@@ -13,13 +13,13 @@ class DatasetConfig:
     """
     Configuration of the experiment.
     """
-    min_seq_len: int = 32
-    max_seq_len: int = 128
-    num_examples: int = 2000
+    min_seq_len: int = 128
+    max_seq_len: int = 512
+    num_examples: int = 6000
     tokenizer: str = 'bert-base-uncased'
     alpha: int = 1
-    beta: int = 2
-    k_split: float = 0.02
+    beta: int = 3
+    k_split: float = 0.5
     k_indicator: float = 0.1
 
 """
@@ -61,7 +61,7 @@ def main():
     ]
 
     examples, labels = generate_dataset8(
-        min_seq_len=None,
+        min_seq_len=config.min_seq_len,
         max_seq_len=config.max_seq_len,
         num_examples=config.num_examples,
         alpha=config.alpha,
