@@ -25,7 +25,7 @@ class TrainConfig:
     Configuration for training.
     """
     learning_rate: float = 1e-4
-    num_epochs: int = 1000
+    num_epochs: int = 1
     early_stopping: bool = True
     num_classes: int = 8
     early_stopping_threshold: float = 0.95
@@ -77,6 +77,10 @@ def main():
 
     num_parameters = sum(p.numel() for p in model.parameters())
 
+    gpu_name = None
+    if torch.cuda.is_available():
+        gpu_name = torch.cuda.get_device_name(0)
+
     # (5) Train Model
     best_training_loss, best_validation_loss, best_training_accuracy, best_validation_accuracy,validation_loss, validation_accuracy, steps, total_epochs, time_per_epoch, max_memory = train(
         model, train_dataloader, val_dataloader, train_config.num_epochs, loss_fn, optimizer, early_stopping_threshold=train_config.early_stopping_threshold)
@@ -98,6 +102,7 @@ def main():
     row['Best Training Loss'] = best_training_loss
     row['Best Training Accuracy'] = best_training_accuracy
     row['Max Memory'] = max_memory
+    row['GPU'] = gpu_name
 
     append_line(out_path, row)
 

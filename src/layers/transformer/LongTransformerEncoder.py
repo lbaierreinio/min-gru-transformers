@@ -1,6 +1,5 @@
 import math
 import torch.nn as nn
-from layers.rnn.BiMinGRU import BiMinGRU
 from layers.transformer.PositionalEncoding import PositionalEncoding
 from layers.transformer.TransformerEncoderBlock import TransformerEncoderBlock
 
@@ -20,8 +19,8 @@ class LongTransformerEncoder(nn.Module):
             TransformerEncoderBlock(num_heads, num_hiddens, ffn_num_hiddens, dropout, bias) for _ in range(num_layers)
         ])
 
-        # MinGRU for output
-        self.out = BiMinGRU(num_hiddens, num_hiddens)
+        # GRU for output
+        self.out = nn.GRU(num_hiddens, num_hiddens, num_layers=1, batch_first=True)
 
     def forward(self, x, mask=None, is_chunked=False):
         x = self.embedding(x) * math.sqrt(self.num_hiddens)
@@ -43,8 +42,9 @@ class LongTransformerEncoder(nn.Module):
             x = layer(x, mask=chunked_mask if is_chunked else mask) # (N * B, C, H)
         
         if is_chunked:
-            x = x.view(num_chunks, -1, self.chunk_size, num_hiddens) # (N, B, C, H)
-            x = x.reshape(batch_size, -1, num_hiddens) # (B, N * C, H)
-            x = self.out(x, mask) # (B, N * C, H)
+            x_res = x_res[:, -1, :] # Extract last token's hidden state
+            x_res = x_res.view(batch_size, num_chunks, num_hiddens) # (B, N, H)
+        
+        x, _ = self.out(x)
 
         return x[:, -1] # (B, H)
