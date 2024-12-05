@@ -30,7 +30,7 @@ def evaluate(model, dataloader, loss_fn, evaluation_type='Validation'):
         return total_loss, accuracy
 
 
-def train(model, train_dataloader, val_dataloader, num_epochs, loss_fn, optimizer, *, early_stopping_threshold=None, validate_every_i=1, warmup_steps=5000, patience=5):
+def train(model, train_dataloader, val_dataloader, num_epochs, loss_fn, optimizer, *, early_stopping_threshold=None, validate_every_i=1, patience=5):
     steps = 0
     total_time = 0
     best_validation_accuracy = 0
@@ -40,7 +40,6 @@ def train(model, train_dataloader, val_dataloader, num_epochs, loss_fn, optimize
     best_training_loss = float('inf')
     max_memory = 0
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
-    scheduler = get_cosine_schedule_with_warmup(optimizer, num_warmup_steps=warmup_steps, num_training_steps=num_epochs * len(train_dataloader))
     for epoch in range(0, num_epochs):
         if device.type == 'cuda':
             torch.cuda.reset_peak_memory_stats()
@@ -67,7 +66,6 @@ def train(model, train_dataloader, val_dataloader, num_epochs, loss_fn, optimize
                 training_loss += loss.item()
                 loss.backward()
                 optimizer.step()
-                scheduler.step()
                 if torch.cuda.is_available():
                     torch.cuda.synchronize()
                 epoch_time += (time.time() - start)
