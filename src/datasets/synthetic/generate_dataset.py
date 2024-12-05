@@ -61,7 +61,7 @@ def main():
     ]
 
     examples, labels = generate_dataset8(
-        min_seq_len=config.min_seq_len,
+        min_seq_len=None,
         max_seq_len=config.max_seq_len,
         num_examples=config.num_examples,
         alpha=config.alpha,

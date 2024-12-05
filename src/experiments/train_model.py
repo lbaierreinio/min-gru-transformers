@@ -27,9 +27,9 @@ class TransformerConfig:
     name: str = 'transformer'
     num_heads: int = 4
     num_layers: int = 4
-    num_hiddens: int = 256
-    ffn_num_hiddens: int = 1024
-    chunk_size: int = 64
+    num_hiddens: int = 512
+    ffn_num_hiddens: int = 2048
+    chunk_size: int = 32
 
 
 @dataclass

@@ -23,7 +23,7 @@ class LongTransformerEncoder(nn.Module):
         # MinGRU for output
         self.out = BiMinGRU(num_hiddens, num_hiddens)
 
-    def forward(self, x, mask=None, is_chunked=True):
+    def forward(self, x, mask=None, is_chunked=False):
         x = self.embedding(x) * math.sqrt(self.num_hiddens)
         x = self.pos_encoder(x)
 
@@ -40,9 +40,11 @@ class LongTransformerEncoder(nn.Module):
                 chunked_mask[chunked_mask.all(dim=1)] = False # Attend to rows that are exclusively padding tokens (as they will be masked out later)
 
         for layer in self.layers:
-            x = layer(x, mask=chunked_mask if is_chunked else mask)
+            x = layer(x, mask=chunked_mask if is_chunked else mask) # (N * B, C, H)
+        
         if is_chunked:
             x = x.view(num_chunks, -1, self.chunk_size, num_hiddens) # (N, B, C, H)
             x = x.reshape(batch_size, -1, num_hiddens) # (B, N * C, H)
-        x = self.out(x, mask)
+            x = self.out(x, mask) # (B, N * C, H)
+
         return x[:, -1] # (B, H)
