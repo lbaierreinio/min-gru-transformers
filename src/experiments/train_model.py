@@ -8,6 +8,7 @@ from train.utility import train
 from utils.utility import create_file, append_line, get_new_row
 from datasets.synthetic.generate_dataset import DatasetConfig
 from models.MinGRUSynthetic import MinGRUSynthetic
+from models.TransformerSynthetic import TransformerSynthetic
 
 @dataclass
 class MinGRUConfig:
@@ -20,12 +21,26 @@ class MinGRUConfig:
     bidirectional: bool = True
 
 @dataclass
+class TransformerConfig:
+    """
+    Configuration for Transformer model.
+    """
+    name: str = 'transformer'
+    num_heads: int = 8
+    num_layers: int = 4
+    num_hiddens: int = 128
+    ffn_num_hiddens: int = 512
+    chunk_size: int = 128
+    dropout: float = 0.1
+    max_len: int = 512
+
+@dataclass
 class TrainConfig:
     """
     Configuration for training.
     """
-    learning_rate: float = 1e-4
-    num_epochs: int = 1
+    learning_rate: float = 3e-4
+    num_epochs: int = 1000
     early_stopping: bool = True
     num_classes: int = 8
     early_stopping_threshold: float = 0.95
@@ -38,6 +53,9 @@ def main():
     
     parser.add_argument('--out_path', type=str,
                         help='Training dataset path')
+    
+    parser.add_argument('--model', type=int,
+                        help='Model')
 
     args = parser.parse_args()
 
@@ -45,6 +63,7 @@ def main():
 
     dataset_path = args.dataset_path
     out_path = args.out_path
+    model = args.model
 
     if not os.path.exists(out_path):
         create_file(args.out_path)
@@ -64,14 +83,28 @@ def main():
     # (4) Define Model and Configuration
     vocab_size = tokenizer.vocab_size
 
-    config = MinGRUConfig()
-    model = MinGRUSynthetic(
-        vocab_size=vocab_size,
-        embedding_dim=config.embedding_dim,
-        num_layers=config.num_layers,
-        bidirectional=config.bidirectional,
-        num_classes=train_config.num_classes,
-    ).to(device)
+    if model == 0:
+        config = MinGRUConfig()
+        model = MinGRUSynthetic(
+            vocab_size=vocab_size,
+            embedding_dim=config.embedding_dim,
+            num_layers=config.num_layers,
+            bidirectional=config.bidirectional,
+            num_classes=train_config.num_classes,
+        ).to(device)
+    else:
+        config = TransformerConfig()
+        model = TransformerSynthetic(
+            vocab_size=vocab_size,
+            num_heads=config.num_heads,
+            num_layers=config.num_layers,
+            num_classes=train_config.num_classes,
+            num_hiddens=config.num_hiddens,
+            ffn_num_hiddens=config.ffn_num_hiddens,
+            chunk_size=config.chunk_size,
+            max_len=config.max_len,
+            dropout=config.dropout
+        ).to(device)
 
     optimizer = torch.optim.Adam(model.parameters(), lr=train_config.learning_rate)
 

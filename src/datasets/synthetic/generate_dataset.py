@@ -13,14 +13,14 @@ class DatasetConfig:
     """
     Configuration of the experiment.
     """
-    min_seq_len: int = 512
-    max_seq_len: int = 1016
-    num_examples: int = 16000
+    min_seq_len: int = 128
+    max_seq_len: int = 510
+    num_examples: int = 8000
     tokenizer: str = 'bert-base-uncased'
-    alpha: int = 2
+    alpha: int = 4
     beta: int = 2
     k_split: float = 0.05
-    k_indicator: float = 0.6
+    k_indicator: float = 0.3
 
 """
 Script to generate and save a synthetic dataset given the current state
@@ -71,7 +71,7 @@ def main():
         grammars=grammars,
     )
 
-    transformer_dataset = TransformerSyntheticDataset(examples, labels, tokenizer, config.max_seq_len)
+    transformer_dataset = TransformerSyntheticDataset(examples, labels, tokenizer, 512)
     
     mingru_dataset = MinGRUSyntheticDataset(examples, labels, tokenizer)
 
