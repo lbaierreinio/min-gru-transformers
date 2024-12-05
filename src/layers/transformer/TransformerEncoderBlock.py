@@ -1,6 +1,5 @@
 import torch.nn as nn
 
-
 class TransformerEncoderBlock(nn.Module):
     def __init__(self, num_heads, num_hiddens, ffn_num_hiddens, dropout, bias=False):
         super().__init__()
@@ -10,7 +9,7 @@ class TransformerEncoderBlock(nn.Module):
 
         # Attention
         self.attention = nn.MultiheadAttention(
-            num_hiddens, num_heads, dropout=dropout, bias=bias)
+            num_hiddens, num_heads, dropout=dropout, bias=bias, batch_first=True)
 
         # Dropout
         self.dropout1 = nn.Dropout(dropout)
@@ -23,7 +22,7 @@ class TransformerEncoderBlock(nn.Module):
 
     def forward(self, x, mask=None):
         skip1 = x
-        x, _ = self.attention(x, x, x, key_padding_mask=mask)  # Self Attention (Sublayer One)
+        x, _ = self.attention(x, x, x, key_padding_mask=mask)
         skip2 = self.layernorm1(self.dropout1(x) + skip1)
         # Position-Wise FNN (Sublayer 2)
         x = self.ffn2(self.relu(self.ffn1(skip2)))

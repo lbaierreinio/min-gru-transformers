@@ -1,5 +1,6 @@
 import math
 import torch.nn as nn
+from layers.rnn.BiMinGRU import BiMinGRU
 from layers.transformer.PositionalEncoding import PositionalEncoding
 from layers.transformer.TransformerEncoderBlock import TransformerEncoderBlock
 
@@ -19,34 +20,31 @@ class LongTransformerEncoder(nn.Module):
             TransformerEncoderBlock(num_heads, num_hiddens, ffn_num_hiddens, dropout, bias) for _ in range(num_layers)
         ])
 
-        # Aggregate result of each chunk
-        self.rnn_out = nn.GRU(num_hiddens, num_hiddens, num_layers=1, batch_first=True)
+        # MinGRU for output
+        self.out = BiMinGRU(num_hiddens, num_hiddens)
 
-    def forward(self, x, mask=None):
+    def forward(self, x, mask=None, is_chunked=False):
         x = self.embedding(x) * math.sqrt(self.num_hiddens)
         x = self.pos_encoder(x)
 
-        num_chunks = int(x.shape[1] // self.chunk_size)
-        batch_size, _, num_hiddens = x.shape
-
-        x_chunks = x.view(batch_size, num_chunks,
-                          self.chunk_size, num_hiddens)  # (Batch, Number of Chunks, Chunk Size, Hidden Dimension)
-        x_chunks = x_chunks.transpose(0, 1)  # (N, B, C, H)
-        x_chunks = x_chunks.reshape(-1, self.chunk_size, num_hiddens) # (N * B, C, H)
-
-        if mask is not None:
-            mask = mask.view(batch_size, num_chunks, self.chunk_size) # (B, N, C)
-            mask = mask.transpose(0,1)
-            mask = mask.reshape(batch_size * num_chunks, self.chunk_size) # (N * B, C)
-
-        x_out = x_chunks
+        if is_chunked:
+            batch_size, max_seq_len, num_hiddens = x.shape
+            num_chunks = int(max_seq_len // self.chunk_size)
+            x = x.view(batch_size, num_chunks, self.chunk_size, num_hiddens)  # (Batch, Number of Chunks, Chunk Size, Hidden Dimension)
+            x = x.reshape(-1, self.chunk_size, num_hiddens) # (N * B, C, H)
+            
+            chunked_mask = None
+            if mask is not None:
+                chunked_mask = mask.view(batch_size, num_chunks, self.chunk_size)
+                chunked_mask = chunked_mask.reshape(batch_size * num_chunks, self.chunk_size)
+                chunked_mask[chunked_mask.all(dim=1)] = False # Attend to rows that are exclusively padding tokens (as they will be masked out later)
 
         for layer in self.layers:
-            x_out = layer(x_out, mask=mask)
+            x = layer(x, mask=chunked_mask if is_chunked else mask) # (N * B, C, H)
+        
+        if is_chunked:
+            x = x.view(num_chunks, -1, self.chunk_size, num_hiddens) # (N, B, C, H)
+            x = x.reshape(batch_size, -1, num_hiddens) # (B, N * C, H)
+            x = self.out(x, mask) # (B, N * C, H)
 
-        x_res = x_out[:, 0, :]  # (N * B, H) Extract [CLS] token from each chunk
-        x_res = x_res.view(num_chunks, batch_size, num_hiddens)  # (N, B, H)
-        x_res = x_res.transpose(0, 1)  # (B, N, H)
-
-        x, _ = self.rnn_out(x)  # (B, N, H)
-        return x[:, -1] # Return final hidden state as our prediction
+        return x[:, -1] # (B, H)

@@ -15,9 +15,8 @@ class MinGRUConfig:
     Configuration for minGRU model.
     """
     name: str = 'mingru'
-    embedding_dim: int = 128
-    expansion_factor: float = 2.5
     num_layers: int = 2
+    embedding_dim: int = 256
     bidirectional: bool = True
 
 @dataclass
@@ -28,8 +27,8 @@ class TransformerConfig:
     name: str = 'transformer'
     num_heads: int = 4
     num_layers: int = 4
-    num_hiddens: int = 128
-    ffn_num_hiddens: int = 512
+    num_hiddens: int = 512
+    ffn_num_hiddens: int = 2048
     chunk_size: int = 32
 
 
@@ -72,8 +71,7 @@ def main():
     # (2) Load Dataset
     dataset_config = DatasetConfig()
 
-    tokenizer = AutoTokenizer.from_pretrained(
-        dataset_config.tokenizer, model_max_length=dataset_config.sequence_length)
+    tokenizer = AutoTokenizer.from_pretrained(dataset_config.tokenizer)
 
     dataset = torch.load(dataset_path)
     train_dataloader, val_dataloader = get_split(dataset)
@@ -81,6 +79,7 @@ def main():
     # (3) Load Training Parameters
     train_config = TrainConfig()
     loss_fn = torch.nn.CrossEntropyLoss()
+
 
     # (4) Define Model and Configuration
     vocab_size = tokenizer.vocab_size
@@ -104,16 +103,10 @@ def main():
             num_hiddens=config.num_hiddens,
             ffn_num_hiddens=config.ffn_num_hiddens,
             chunk_size=config.chunk_size,
-            max_len=dataset_config.sequence_length,
+            max_len=dataset_config.max_seq_len
         ).to(device)
 
     num_parameters = sum(p.numel() for p in model.parameters())
-
-    print(f"Model: {config.name}")
-    print(f"Number of Parameters: {num_parameters}")
-    print(f"Bidirectional: {config.bidirectional}")
-    print(f"Number of Layers: {config.num_layers}")
-    print(f"Embedding Dimension: {config.embedding_dim}")
 
     # (5) Train Model
     validation_accuracy, total_validation_loss, steps, total_epochs, avg_time_per_step = train(

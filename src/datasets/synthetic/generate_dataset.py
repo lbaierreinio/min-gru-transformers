@@ -13,13 +13,13 @@ class DatasetConfig:
     """
     Configuration of the experiment.
     """
-    sequence_length: int = 100
-    cls_tokens: int = 2
+    min_seq_len: int = 32
+    max_seq_len: int = 128
     num_examples: int = 2000
     tokenizer: str = 'bert-base-uncased'
     alpha: int = 1
-    beta: int = 4
-    k_split: float = 0.05
+    beta: int = 2
+    k_split: float = 0.02
     k_indicator: float = 0.1
 
 """
@@ -40,13 +40,8 @@ def main():
     config = DatasetConfig()
     
 
-    transformer_tokenizer = AutoTokenizer.from_pretrained(
-        config.tokenizer, model_max_length=config.sequence_length+config.cls_tokens)
-
-    mingru_tokenizer = AutoTokenizer.from_pretrained(
-        config.tokenizer, model_max_length=config.sequence_length)
-
-    mingru_tokenizer.padding_side = "left" # MinGRU uses pre-padding
+    tokenizer = AutoTokenizer.from_pretrained(config.tokenizer)
+    tokenizer.padding_side = "left"
 
     grammars = [
         {
@@ -66,7 +61,8 @@ def main():
     ]
 
     examples, labels = generate_dataset8(
-        seq_len=config.sequence_length,
+        min_seq_len=None,
+        max_seq_len=config.max_seq_len,
         num_examples=config.num_examples,
         alpha=config.alpha,
         beta=config.beta,
@@ -75,12 +71,9 @@ def main():
         grammars=grammars,
     )
 
-    transformer_dataset = TransformerSyntheticDataset(
-        examples, labels, transformer_tokenizer, 2048)
+    transformer_dataset = TransformerSyntheticDataset(examples, labels, tokenizer, config.max_seq_len)
     
-    mingru_dataset = MinGRUSyntheticDataset(
-        examples, labels, mingru_tokenizer, 2048
-    )
+    mingru_dataset = MinGRUSyntheticDataset(examples, labels, tokenizer)
 
     torch.save(transformer_dataset, f"transformer_{dataset_path}.pt")
     torch.save(mingru_dataset, f"mingru_{dataset_path}.pt")
