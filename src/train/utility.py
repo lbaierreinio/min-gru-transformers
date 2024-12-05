@@ -46,7 +46,7 @@ def train(model, train_dataloader, val_dataloader, num_epochs, loss_fn, learning
             # Backward & forward pass
             output = model(input, mask=mask)
             loss = loss_fn(output, labels)
-            total_loss += loss.detach().item()
+            total_loss += loss.item()
             loss.backward()
 
             # Gradient accumulation every i batches (ensure number of batches divisible by i)
@@ -68,9 +68,9 @@ def train(model, train_dataloader, val_dataloader, num_epochs, loss_fn, learning
                 model, val_dataloader, loss_fn, 'Validation')
             if early_stopping_threshold is not None and accuracy >= early_stopping_threshold:
                 print(f"Early stopping at epoch {epoch}")
-                return total_loss, accuracy, steps, epoch, (total_time / num_epochs)
+                return total_loss, accuracy, steps, epoch, (total_time / epoch)
             print('\n\n')
 
     total_loss, accuracy = evaluate(
         model, val_dataloader, loss_fn, 'Validation')
-    return total_loss, accuracy, steps, num_epochs, (total_time / epoch)
+    return total_loss, accuracy, steps, num_epochs, (total_time / num_epochs)
