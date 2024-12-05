@@ -12,7 +12,7 @@ def evaluate(model, dataloader, loss_fn, evaluation_type='Validation'):
             input = batch['input_ids'].to(device)
             labels = batch['labels'].to(device)
             mask = ~batch['attention_mask'].to(device).bool()
-            output = model(input, mask)
+            output = model(input, mask=mask)
 
             # Total loss
             loss = loss_fn(output, labels)
