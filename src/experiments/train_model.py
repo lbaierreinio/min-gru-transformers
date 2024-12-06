@@ -26,12 +26,12 @@ class TransformerConfig:
     Configuration for Transformer model.
     """
     name: str = 'transformer'
-    num_heads: int = 8
-    num_layers: int = 4
-    num_hiddens: int = 128
-    ffn_num_hiddens: int = 512
-    chunk_size: int = 128
-    dropout: float = 0.1
+    num_hiddens = 512
+    num_heads = 8
+    num_layers = 4
+    num_classes = 8
+    ffn_num_hiddens = 2048
+    dropout = 0.1
     max_len: int = 512
 
 @dataclass
@@ -40,7 +40,7 @@ class TrainConfig:
     Configuration for training.
     """
     learning_rate: float = 3e-4
-    num_epochs: int = 1000
+    num_epochs: int = 500
     early_stopping: bool = True
     num_classes: int = 8
     early_stopping_threshold: float = 0.95
@@ -101,7 +101,6 @@ def main():
             num_classes=train_config.num_classes,
             num_hiddens=config.num_hiddens,
             ffn_num_hiddens=config.ffn_num_hiddens,
-            chunk_size=config.chunk_size,
             max_len=config.max_len,
             dropout=config.dropout
         ).to(device)

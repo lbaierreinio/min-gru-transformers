@@ -29,13 +29,13 @@ def evaluate(model, dataloader, loss_fn, evaluation_type='Validation'):
         return total_loss, accuracy
 
 
-def train_epoch(train_dataloader, device, model, loss_fn, optimizer):
+def train_epoch(dataloader, device, model, loss_fn, optimizer):
     training_loss = 0
     total_correct = 0
     epoch_time = 0
     steps = 0
     model.train()
-    for batch in train_dataloader:
+    for batch in dataloader:
         input = batch['input_ids'].to(device)
         labels = batch['labels'].to(device)
         mask = ~batch['attention_mask'].to(device).bool()
@@ -55,7 +55,7 @@ def train_epoch(train_dataloader, device, model, loss_fn, optimizer):
         total_correct += (predictions ==
                         labels).type(torch.float).sum().item()
 
-    return (total_correct / len(train_dataloader)), training_loss, total_correct, epoch_time, steps
+    return (total_correct / len(dataloader.dataset)), training_loss, total_correct, epoch_time, steps
 
 def train(model, train_dataloader, val_dataloader, num_epochs, loss_fn, optimizer, *, early_stopping_threshold=None, validate_every_i=1, patience=5):
     steps = 0
@@ -70,7 +70,7 @@ def train(model, train_dataloader, val_dataloader, num_epochs, loss_fn, optimize
     
     for epoch in range(0, num_epochs):
         cur_max_memory = 0
-        if epoch >= 5 and epoch < 6: # Only profile in epochs 5-10 (allow for warmup)
+        if epoch == 5: # Only profile memory once (significant overhead and does not fluctuate between epochs)
             if device.type == 'cuda':
                 torch.cuda.reset_peak_memory_stats()    
             with torch.profiler.profile(
@@ -113,7 +113,7 @@ def train(model, train_dataloader, val_dataloader, num_epochs, loss_fn, optimize
             
             results = (round(best_training_loss,2), round(best_validation_loss,2), round(best_training_accuracy,2), round(best_validation_accuracy,2), round(validation_loss,2), round(validation_accuracy,2), steps, epoch+1, round(total_time / (epoch + 1), 2), max_memory)
 
-            if early_stopping_threshold is not None and validation_accuracy >= early_stopping_threshold:
+            if early_stopping_threshold is not None and best_validation_accuracy >= early_stopping_threshold and best_training_accuracy >= early_stopping_threshold:
                 print(f"Early stopping at epoch {epoch} due to reaching early stopping threshold")
                 return results
             
