@@ -6,9 +6,8 @@ class MinGRUSyntheticDataset(Dataset):
     def __init__(self, sequences, labels, tokenizer, max_length):
         self.encodings = tokenizer(
             [' '.join(seq) for seq in sequences],
-            padding='max_length',
+            padding=True,
             add_special_tokens=True,
-            max_length=max_length,
             truncation=False,
             return_tensors='pt'
         )

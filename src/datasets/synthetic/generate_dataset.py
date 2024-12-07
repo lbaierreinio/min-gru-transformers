@@ -13,14 +13,14 @@ class DatasetConfig:
     """
     Configuration of the experiment.
     """
-    min_seq_len: int = 128
-    max_seq_len: int = 512
-    num_examples: int = 2000
+    min_seq_len: int = 1536
+    max_seq_len: int = 2560
+    num_examples: int = 8000
     tokenizer: str = 'bert-base-uncased'
     alpha: int = 4
     beta: int = 2
     k_split: float = 0.05
-    k_indicator: float = 0.3
+    k_indicator: float = 0.7
 
 
 """
@@ -46,14 +46,14 @@ def main():
 
     grammars = [
         {
-            'S': [(0.95, 'A'), (0.05, 'B')],
-            'A': [(0.95, 'A'), (0.05, 'B')],
-            'B': [(0.95, 'A'), (0.05, 'B')],
+            'S': [(0.80, 'A'), (0.20, 'B')],
+            'A': [(0.80, 'A'), (0.20, 'B')],
+            'B': [(0.80, 'A'), (0.20, 'B')],
         },
         {
-            'S': [(0.95, 'B'), (0.05, 'C')],
-            'B': [(0.95, 'B'), (0.05, 'C')],
-            'C': [(0.95, 'B'), (0.05, 'C')],
+            'S': [(0.80, 'B'), (0.20, 'C')],
+            'B': [(0.80, 'B'), (0.20, 'C')],
+            'C': [(0.80, 'B'), (0.20, 'C')],
         },
     ]
 

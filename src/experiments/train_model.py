@@ -34,7 +34,7 @@ class TransformerConfig:
     ffn_num_hiddens = 1024
     dropout = 0.1
     max_len: int = 512
-    chunk_size: int = 128
+    chunk_size: int = 512
 
 @dataclass
 class TrainConfig:

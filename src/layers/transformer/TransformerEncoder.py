@@ -10,7 +10,7 @@ class TransformerEncoder(nn.Module):
         self.embedding = nn.Embedding(vocab_size, num_hiddens)
         self.chunk_size = chunk_size
         self.is_chunked = chunk_size is not None
-        self.pos_encoder = PositionalEncoding(num_hiddens, max_len)
+        self.pos_encoder = PositionalEncoding(num_hiddens, chunk_size if self.is_chunked else max_len)
         self.layers = nn.ModuleList([
             TransformerEncoderBlock(num_heads, num_hiddens, ffn_num_hiddens, dropout) for _ in range(num_layers)
         ])
@@ -23,10 +23,6 @@ class TransformerEncoder(nn.Module):
             src: Tensor of shape [batch_size, seq_len]
             mask: ByteTensor of shape [batch_size, seq_len]
         """
-         # Embedding + Positional Encoding
-        x = self.embedding(x) * math.sqrt(self.num_hiddens)
-        x = self.pos_encoder(x)
-        
         if self.is_chunked:
             batch_size, max_seq_len, num_hiddens = x.shape
             num_chunks = int(max_seq_len // self.chunk_size)
@@ -38,6 +34,10 @@ class TransformerEncoder(nn.Module):
                 chunked_mask = mask.view(batch_size, num_chunks, self.chunk_size)
                 chunked_mask = chunked_mask.reshape(batch_size * num_chunks, self.chunk_size)
                 chunked_mask[chunked_mask.all(dim=1)] = False # Attend to rows that are exclusively padding tokens (as they will be masked out later)
+
+        # Apply Embedding + Positional Encoding after chunking
+        x = self.embedding(x) * math.sqrt(self.num_hiddens)
+        x = self.pos_encoder(x)
 
         for layer in self.layers:
             x = layer(x, mask=chunked_mask if self.is_chunked else mask) # (N * B, C, H)
