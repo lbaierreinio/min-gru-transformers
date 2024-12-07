@@ -243,6 +243,6 @@ checkpoint = {
     'optimizer_state_dict': optimizer.state_dict(),
 }
 
-checkpoint_file = os.path.join(log_dir, f"checkpoint-{unique_identifier}.pth")
+checkpoint_file = os.path.join(checkpoint_dir, f"checkpoint-{unique_identifier}.pth")
 torch.save(checkpoint, checkpoint_file)
 print("Checkpoint saved!")
