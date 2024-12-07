@@ -40,9 +40,9 @@ epochs = 30
 B = 64 # batch size
 
 # Model configurations
-n_layer = 8
-hidden_dim = 768
-classification_head_dim = 768
+n_layer = 4
+hidden_dim = 512
+classification_head_dim = 512
 bidirectional=True
 #########################################################
 # Create model
@@ -72,10 +72,12 @@ squad_metric = load(squad_version)
 if use_compile:
     model = torch.compile(model)
 
+unique_identifier = f"{n_layer}-{hidden_dim}-{'T' if bidirectional else 'F'}"
+
 # Create the log directory we will write checkpoints to and log to
 log_dir = "log"
 os.makedirs(log_dir, exist_ok=True)
-log_file = os.path.join(log_dir, f"log.txt")
+log_file = os.path.join(log_dir, f"log-{unique_identifier}.txt")
 with open(log_file, "w") as f: # this clears the existing logs
     f.write("Training hyperparamaters:\n")
     f.write(f"    {max_lr=}, {min_lr=}, {warmup_steps=}, {epochs=}, batch_size={B}\n")
@@ -232,10 +234,15 @@ for i in range(epochs):
         with open(log_file, "a") as f:
             f.write(f"{epoch_metrics}\n")
 
+checkpoint_dir = os.path.join(log_dir, "checkpoints")
+os.makedirs(checkpoint_dir, exist_ok=True)
+
 # Save last model
 checkpoint = {
     'model_state_dict': model.state_dict(),
     'optimizer_state_dict': optimizer.state_dict(),
 }
-torch.save(checkpoint, 'checkpoint.pth')
+
+checkpoint_file = os.path.join(checkpoint_dir, f"checkpoint-{unique_identifier}.pth")
+torch.save(checkpoint, checkpoint_file)
 print("Checkpoint saved!")
