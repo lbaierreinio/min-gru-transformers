@@ -90,7 +90,7 @@ def get_split(dataset, *, batch_size=32, validation_split=0.1, seed=42):
     train_dataset, val_dataset = torch.utils.data.random_split(
         dataset, [len(dataset) - val_size, val_size])
     train_dataloader = DataLoader(
-        train_dataset, batch_size=batch_size, shuffle=False)
+        train_dataset, batch_size=batch_size, shuffle=True)
     val_dataloader = DataLoader(
         val_dataset, batch_size=batch_size, shuffle=False)
 

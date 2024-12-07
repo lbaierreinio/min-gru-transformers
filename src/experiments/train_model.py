@@ -9,6 +9,7 @@ from utils.utility import create_file, append_line, get_new_row
 from datasets.synthetic.generate_dataset import DatasetConfig
 from models.MinGRUSynthetic import MinGRUSynthetic
 from models.TransformerSynthetic import TransformerSynthetic
+import matplotlib.pyplot as plt
 
 @dataclass
 class MinGRUConfig:
@@ -26,11 +27,11 @@ class TransformerConfig:
     Configuration for Transformer model.
     """
     name: str = 'transformer'
-    num_hiddens = 512
+    num_hiddens = 256
     num_heads = 8
-    num_layers = 4
+    num_layers = 6
     num_classes = 8
-    ffn_num_hiddens = 2048
+    ffn_num_hiddens = 1024
     dropout = 0.1
     max_len: int = 512
 
@@ -40,7 +41,7 @@ class TrainConfig:
     Configuration for training.
     """
     learning_rate: float = 3e-4
-    num_epochs: int = 500
+    num_epochs: int = 100
     early_stopping: bool = True
     num_classes: int = 8
     early_stopping_threshold: float = 0.95
@@ -114,9 +115,10 @@ def main():
         gpu_name = torch.cuda.get_device_name(0)
 
     # (5) Train Model
-    best_training_loss, best_validation_loss, best_training_accuracy, best_validation_accuracy,validation_loss, validation_accuracy, steps, total_epochs, time_per_epoch, max_memory = train(
+    best_training_loss, best_validation_loss, best_training_accuracy, best_validation_accuracy, validation_loss, validation_accuracy, steps, total_epochs, time_per_epoch, max_memory, all_training_losses, all_training_accuracies, all_validation_losses, all_validation_accuracies = train(
         model, train_dataloader, val_dataloader, train_config.num_epochs, loss_fn, optimizer, early_stopping_threshold=train_config.early_stopping_threshold)
-
+    
+    # Save model & final results in a CSV file
     torch.save(model, f"{config.name}.pt")
 
     row = get_new_row()
@@ -137,6 +139,40 @@ def main():
     row['GPU'] = gpu_name
 
     append_line(out_path, row)
+
+    # Graph results
+    epochs = range(1, total_epochs + 1)
+
+    # Plot accuracy
+    plt.figure(figsize=(10, 5))
+    plt.plot(epochs, all_training_accuracies, label="Training Accuracy", marker='o')
+    plt.plot(epochs, all_validation_accuracies, label="Validation Accuracy", marker='o')
+    plt.title("Accuracy vs Epochs", fontsize=16)
+    plt.xlabel("Epochs", fontsize=14)
+    plt.ylabel("Accuracy", fontsize=14)
+    plt.legend(fontsize=12)
+    plt.grid(alpha=0.3)
+    plt.tight_layout()
+    plt.savefig(f"{config.name}_accuracy.png")
+    plt.close()
+
+    # Plot accuracy
+    plt.figure(figsize=(10, 5))
+    plt.plot(epochs, all_training_losses, label="Training Loss", marker='o')
+    plt.plot(epochs, all_validation_losses, label="Validation Loss", marker='o')
+    plt.title("Loss vs Epochs", fontsize=16)
+    plt.xlabel("Epochs", fontsize=14)
+    plt.ylabel("Loss", fontsize=14)
+    plt.legend(fontsize=12)
+    plt.grid(alpha=0.3)
+    plt.tight_layout()
+    plt.savefig(f"{config.name}_loss.png")
+    plt.close()
+
+
+    
+
+
 
 if __name__ == '__main__':
     main()

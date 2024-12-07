@@ -7,6 +7,7 @@ def evaluate(model, dataloader, loss_fn, evaluation_type='Validation'):
         model.eval()
         total_loss = 0.
         total_correct = 0.
+        steps = 0
         device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
         for batch in dataloader:
             input = batch['input_ids'].to(device)
@@ -17,16 +18,14 @@ def evaluate(model, dataloader, loss_fn, evaluation_type='Validation'):
             # Total loss
             loss = loss_fn(output, labels)
             total_loss += loss.item()
+            steps += 1
 
             # Total Correct
             predictions = torch.argmax(output, dim=1)
             total_correct += (predictions ==
                               labels).type(torch.float).sum().item()
 
-        accuracy = round(total_correct / len(dataloader.dataset), 4)
-        print(f"{evaluation_type} Loss: {round(total_loss, 2)}")
-        print(f"{evaluation_type} Accuracy: {accuracy}")
-        return total_loss, accuracy
+        return (total_loss / steps), (total_correct / len(dataloader.dataset))
 
 
 def train_epoch(dataloader, device, model, loss_fn, optimizer):
@@ -54,10 +53,10 @@ def train_epoch(dataloader, device, model, loss_fn, optimizer):
         predictions = torch.argmax(output, dim=1)
         total_correct += (predictions ==
                         labels).type(torch.float).sum().item()
+        
+    return (training_loss / steps), (total_correct / len(dataloader.dataset)), epoch_time, steps
 
-    return (total_correct / len(dataloader.dataset)), training_loss, total_correct, epoch_time, steps
-
-def train(model, train_dataloader, val_dataloader, num_epochs, loss_fn, optimizer, *, early_stopping_threshold=None, validate_every_i=1, patience=5):
+def train(model, train_dataloader, val_dataloader, num_epochs, loss_fn, optimizer, *, early_stopping_threshold=None, validate_every_i=1, patience=10):
     steps = 0
     total_time = 0
     best_validation_accuracy = 0
@@ -67,6 +66,12 @@ def train(model, train_dataloader, val_dataloader, num_epochs, loss_fn, optimize
     best_training_loss = float('inf')
     max_memory = 0
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+
+    # Store all results for graph analysis
+    all_training_losses = []
+    all_training_accuracies = []
+    all_validation_losses = []
+    all_validation_accuracies = []
     
     for epoch in range(0, num_epochs):
         cur_max_memory = 0
@@ -79,7 +84,7 @@ def train(model, train_dataloader, val_dataloader, num_epochs, loss_fn, optimize
                     torch.profiler.ProfilerActivity.CUDA,
                 ] if torch.cuda.is_available() else [torch.profiler.ProfilerActivity.CPU],
             ) as prof:
-                training_accuracy, training_loss, total_correct, epoch_time, epoch_steps = train_epoch(train_dataloader, device, model, loss_fn, optimizer)
+                training_loss, training_accuracy, epoch_time, epoch_steps = train_epoch(train_dataloader, device, model, loss_fn, optimizer)
                 if device.type == 'cuda':
                     cur_max_memory = torch.cuda.max_memory_allocated() / (1024 * 1024)
                 else:
@@ -88,12 +93,11 @@ def train(model, train_dataloader, val_dataloader, num_epochs, loss_fn, optimize
                             cur_max_memory = max(cur_max_memory, event.cpu_memory_usage / (1024 * 1024))
                 max_memory = max(max_memory, cur_max_memory)
         else:
-            training_accuracy, training_loss, total_correct, epoch_time, epoch_steps = train_epoch(train_dataloader, device, model, loss_fn, optimizer)
+            training_loss, training_accuracy, epoch_time, epoch_steps = train_epoch(train_dataloader, device, model, loss_fn, optimizer)
         steps += epoch_steps
         # Compute statistics, handle early exiting
         total_time += epoch_time
         best_training_loss = min(best_training_loss, training_loss)
-        training_accuracy = total_correct / len(train_dataloader.dataset)
         best_training_accuracy = max(best_training_accuracy, training_accuracy)
 
         if (epoch+1) % validate_every_i == 0:
@@ -110,14 +114,19 @@ def train(model, train_dataloader, val_dataloader, num_epochs, loss_fn, optimize
             print(f"Validation Accuracy: {round(validation_accuracy, 4)}")
             print(f"Epoch Time: {round(epoch_time, 2)}s")
             print(f"Max Memory: {round(cur_max_memory, 2)}MB\n")
+
+            all_training_losses.append(training_loss)
+            all_training_accuracies.append(training_accuracy)
+            all_validation_losses.append(validation_loss)
+            all_validation_accuracies.append(validation_accuracy)
             
-            results = (round(best_training_loss,2), round(best_validation_loss,2), round(best_training_accuracy,2), round(best_validation_accuracy,2), round(validation_loss,2), round(validation_accuracy,2), steps, epoch+1, round(total_time / (epoch + 1), 2), max_memory)
+            results = (round(best_training_loss,2), round(best_validation_loss,2), round(best_training_accuracy,2), round(best_validation_accuracy,2), round(validation_loss,2), round(validation_accuracy,2), steps, epoch+1, round(total_time / (epoch + 1), 2), max_memory, all_training_losses, all_training_accuracies, all_validation_losses, all_validation_accuracies)
 
             if early_stopping_threshold is not None and best_validation_accuracy >= early_stopping_threshold and best_training_accuracy >= early_stopping_threshold:
                 print(f"Early stopping at epoch {epoch} due to reaching early stopping threshold")
                 return results
             
-            if validation_accuracy < (best_training_accuracy - 0.1): # Use 0.1 as model has shown to hover around same validation accuracy on task before starting to learn
+            if validation_accuracy < (best_validation_accuracy - 0.1): # Use 0.1 as model has shown to hover around same validation accuracy on task before starting to learn
                 patience_counter += 1
                 if patience_counter >= patience:
                     print(f"Early stopping at epoch {epoch} due to lack of improvement")
@@ -129,4 +138,4 @@ def train(model, train_dataloader, val_dataloader, num_epochs, loss_fn, optimize
         model, val_dataloader, loss_fn, 'Validation')
     best_validation_accuracy = max(best_validation_accuracy, validation_accuracy)
     best_validation_loss = min(best_validation_loss, validation_loss)
-    return (round(best_training_loss,2), round(best_validation_loss,2), round(best_training_accuracy,2), round(best_validation_accuracy,2), round(validation_loss,2), round(validation_accuracy,2), steps, num_epochs, round(total_time / (epoch + 1), 2), max_memory)
+    return (round(best_training_loss,2), round(best_validation_loss,2), round(best_training_accuracy,2), round(best_validation_accuracy,2), round(validation_loss,2), round(validation_accuracy,2), steps, num_epochs, round(total_time / (epoch + 1), 2), max_memory, all_training_losses, all_training_accuracies, all_validation_losses, all_validation_accuracies)

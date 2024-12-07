@@ -13,14 +13,14 @@ class DatasetConfig:
     """
     Configuration of the experiment.
     """
-    min_seq_len: int = 1536
-    max_seq_len: int = 2560
-    num_examples: int = 16000
+    min_seq_len: int = 128
+    max_seq_len: int = 512
+    num_examples: int = 2000
     tokenizer: str = 'bert-base-uncased'
     alpha: int = 4
     beta: int = 2
     k_split: float = 0.05
-    k_indicator: float = 0.6
+    k_indicator: float = 0.3
 
 
 """
@@ -46,18 +46,14 @@ def main():
 
     grammars = [
         {
-            'S': [(0.25, 'A'), (0.25, 'B'), (0.25, 'C'), (0.25, 'D')],
-            'A': [(0.25, 'A'), (0.25, 'B'), (0.25, 'C'), (0.25, 'D')],
-            'B': [(0.25, 'A'), (0.25, 'B'), (0.25, 'C'), (0.25, 'D')],
-            'C': [(0.25, 'A'), (0.25, 'B'), (0.25, 'C'), (0.25, 'D')],
-            'D': [(0.25, 'A'), (0.25, 'B'), (0.25, 'C'), (0.25, 'D')],
+            'S': [(0.95, 'A'), (0.05, 'B')],
+            'A': [(0.95, 'A'), (0.05, 'B')],
+            'B': [(0.95, 'A'), (0.05, 'B')],
         },
         {
-            'S': [(0.25, 'A'), (0.25, 'B'), (0.25, 'C'), (0.25, 'D')],
-            'A': [(0.05, 'A'), (0.85, 'B'), (0.05, 'C'), (0.05, 'D')],
-            'B': [(0.05, 'A'), (0.05, 'B'), (0.85, 'C'), (0.05, 'D')],
-            'C': [(0.05, 'A'), (0.05, 'B'), (0.05, 'C'), (0.85, 'D')],
-            'D': [(0.85, 'A'), (0.05, 'B'), (0.05, 'C'), (0.05, 'D')],
+            'S': [(0.95, 'B'), (0.05, 'C')],
+            'B': [(0.95, 'B'), (0.05, 'C')],
+            'C': [(0.95, 'B'), (0.05, 'C')],
         },
     ]
 
@@ -71,12 +67,9 @@ def main():
         k_indicator=config.k_indicator,
         grammars=grammars,
     )
-
-    transformer_dataset = TransformerSyntheticDataset(examples, labels, tokenizer, 2560)
     
     mingru_dataset = MinGRUSyntheticDataset(examples, labels, tokenizer)
 
-    torch.save(transformer_dataset, f"transformer_{dataset_path}.pt")
     torch.save(mingru_dataset, f"mingru_{dataset_path}.pt")
 
 
