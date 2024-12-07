@@ -126,7 +126,7 @@ def train(model, train_dataloader, val_dataloader, num_epochs, loss_fn, optimize
                 print(f"Early stopping at epoch {epoch} due to reaching early stopping threshold")
                 return results
             
-            if validation_accuracy < (best_validation_accuracy - 0.1): # Use 0.1 as model has shown to hover around same validation accuracy on task before starting to learn
+            if training_accuracy >= 0.75 and training_accuracy <= best_training_accuracy + 0.05:
                 patience_counter += 1
                 if patience_counter >= patience:
                     print(f"Early stopping at epoch {epoch} due to lack of improvement")

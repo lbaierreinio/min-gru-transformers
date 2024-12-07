@@ -13,14 +13,14 @@ class DatasetConfig:
     """
     Configuration of the experiment.
     """
-    min_seq_len: int = 1536
-    max_seq_len: int = 2560
-    num_examples: int = 8000
+    min_seq_len: int = None
+    max_seq_len: int = 4096
+    num_examples: int = 1000
     tokenizer: str = 'bert-base-uncased'
     alpha: int = 4
     beta: int = 2
-    k_split: float = 0.05
-    k_indicator: float = 0.7
+    k_split: float = 0.3
+    k_indicator: float = 0.8
 
 
 """
