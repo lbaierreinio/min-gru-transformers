@@ -3,11 +3,11 @@ from layers.transformer.TransformerEncoder import TransformerEncoder
 
 
 class TransformerSynthetic(nn.Module):
-    def __init__(self, *, vocab_size, num_heads, num_layers, num_classes, num_hiddens=128, ffn_num_hiddens=512, dropout=0.1, max_len=2048):
+    def __init__(self, *, vocab_size, num_heads, num_layers, num_classes, num_hiddens=128, ffn_num_hiddens=512, dropout=0.1, max_len=2048, chunk_size=None):
         super().__init__()
 
         self.transformer_encoder = TransformerEncoder(
-            vocab_size, num_heads, num_layers, num_hiddens, ffn_num_hiddens, dropout, max_len)
+            vocab_size, num_heads, num_layers, num_hiddens, ffn_num_hiddens, dropout, max_len, chunk_size)
         self.dropout = nn.Dropout(dropout)
         self.fc_out = nn.Linear(num_hiddens, num_classes)
 

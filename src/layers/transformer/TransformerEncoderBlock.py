@@ -21,10 +21,6 @@ class TransformerEncoderBlock(nn.Module):
             nn.Dropout(),
             nn.Linear(ffn_num_hiddens, num_hiddens)
         )
-        # Position wise FFN
-        self.ffn1 = nn.Linear(num_hiddens, ffn_num_hiddens)
-        self.relu = nn.ReLU()
-        self.ffn2 = nn.Linear(ffn_num_hiddens, num_hiddens)
 
     def forward(self, x, mask=None):
         norm_x = self.layernorm1(x)

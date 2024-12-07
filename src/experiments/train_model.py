@@ -30,10 +30,11 @@ class TransformerConfig:
     num_hiddens = 256
     num_heads = 8
     num_layers = 6
-    num_classes = 8
+    num_classes = 4
     ffn_num_hiddens = 1024
     dropout = 0.1
     max_len: int = 512
+    chunk_size: int = 128
 
 @dataclass
 class TrainConfig:
@@ -103,7 +104,8 @@ def main():
             num_hiddens=config.num_hiddens,
             ffn_num_hiddens=config.ffn_num_hiddens,
             max_len=config.max_len,
-            dropout=config.dropout
+            dropout=config.dropout,
+            chunk_size=config.chunk_size
         ).to(device)
 
     optimizer = torch.optim.Adam(model.parameters(), lr=train_config.learning_rate)
