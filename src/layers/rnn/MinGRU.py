@@ -57,15 +57,13 @@ class MinGRU(nn.Module):
 
     def forward(self, x, *, mask=None, is_sequential = False):
         """
-        Compute the forward pass. Note that if h_prev is not none,
-        then we assume the model is processing tokens sequentially.
-        Otherwise, we enter parallel mode. In sequential mode,
-        the sequence length should be 1. In parallel mode, the
-        sequence length should be greater than 1. We return the
-        output of the RNN and the hidden state if return_hidden is True.
-
-        If mask is provided, mask out the hidden states corresponding to the True positions
-        in the mask (this is used to mask out padding tokens in the sequence).
+        Compute the forward pass. In sequential mode, we iterate over
+        the sequence length dimension, processing one token at a time.
+        In parallel mode, we process the tokens in parallel using the
+        parallel_scan_log algorithm. In both cases, we return one hidden
+        state for each token in the sequence. If mask is provided, mask 
+        out the hidden states corresponding to the True positions in the 
+        mask (this is used to mask out padding tokens in the sequence).
 
         Args:
             x: torch.Tensor [batch_size, seq_len, dim_in]
@@ -82,8 +80,8 @@ class MinGRU(nn.Module):
 
         if is_sequential:  # Sequential mode
             batch_size, seq_len, _ = x.shape
-            h_prev = torch.zeros(batch_size, self.dim_hidden)
-            h = torch.zeros(batch_size, 0, self.dim_hidden)
+            h_prev = torch.zeros(batch_size, self.dim_hidden).to(x.device)
+            h = torch.zeros(batch_size, 0, self.dim_hidden).to(x.device)
 
             for t in range(seq_len): # Iterate over sequence length
                 k_t = k[:, t, :]
