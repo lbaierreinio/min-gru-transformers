@@ -24,7 +24,6 @@ def evaluate(model, dataloader, loss_fn, evaluation_type='Validation'):
             predictions = torch.argmax(output, dim=1)
             total_correct += (predictions ==
                               labels).type(torch.float).sum().item()
-
         return (total_loss / steps), (total_correct / len(dataloader.dataset))
 
 
@@ -56,7 +55,7 @@ def train_epoch(dataloader, device, model, loss_fn, optimizer):
         
     return (training_loss / steps), (total_correct / len(dataloader.dataset)), epoch_time, steps
 
-def train(model, train_dataloader, val_dataloader, num_epochs, loss_fn, optimizer, *, early_stopping_threshold=None, validate_every_i=1, patience=10):
+def train(model, train_dataloader, val_dataloader, num_epochs, loss_fn, optimizer, *, early_stopping_threshold=None, validate_every_i=1, accumulate_every_i = 1, patience=10):
     steps = 0
     total_time = 0
     best_validation_accuracy = 0

@@ -34,7 +34,7 @@ class TransformerConfig:
     ffn_num_hiddens = 1024
     dropout = 0.1
     max_len: int = 2560
-    chunk_size: int = 512
+    chunk_size: int = None
 
 @dataclass
 class TrainConfig:
@@ -170,11 +170,6 @@ def main():
     plt.tight_layout()
     plt.savefig(f"{config.name}_loss.png")
     plt.close()
-
-
-    
-
-
 
 if __name__ == '__main__':
     main()

@@ -85,7 +85,7 @@ def get_indicator_idx(cur_seq_len, k):
     return np.clip(int(np.random.normal(cur_seq_len // 2, cur_seq_len * k)), 1, cur_seq_len - 2)
 
 
-def get_split(dataset, *, batch_size=16, validation_split=0.1, seed=42):
+def get_split(dataset, *, batch_size=4, validation_split=0.1, seed=42):
     val_size = int(validation_split * len(dataset))
     train_dataset, val_dataset = torch.utils.data.random_split(
         dataset, [len(dataset) - val_size, val_size])

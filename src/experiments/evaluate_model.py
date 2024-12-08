@@ -6,33 +6,32 @@ from torch.utils.data import DataLoader
 
 def main():
     parser = argparse.ArgumentParser()
-    parser.add_argument('--validation_dataset_path', type=str,
+    parser.add_argument('--dataset_path', type=str,
                         help='Validation dataset path')
-    parser.add_argument('--model_in_path', type=str,
+    parser.add_argument('--model_path', type=str,
                         help='Path to load the model from')
 
     args = parser.parse_args()
 
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
-    validation_dataset_path = args.validation_dataset_path
-    model_in_path = args.model_in_path
+    dataset_path = args.dataset_path
+    model_path = args.model_path
 
-    if not os.path.exists(model_in_path) or not os.path.exists(validation_dataset_path):
+    if not os.path.exists(model_path) or not os.path.exists(dataset_path):
         raise ValueError("Paths must point to a valid file")
 
-    validation_dataset_path = torch.load(validation_dataset_path)
-    validation_dataloader = DataLoader(validation_dataset_path, batch_size=32)
+    dataset_path = torch.load(dataset_path)
+    validation_dataloader = DataLoader(dataset_path, batch_size=8)
 
-    model = torch.load(model_in_path).to(device)
+    model = torch.load(model_path).to(device)
     loss_fn = torch.nn.CrossEntropyLoss()
 
     validation_loss, validation_accuracy = evaluate(
         model, validation_dataloader, loss_fn, evaluation_type='Validation')
 
-    print(f"Total Validation Loss: {round(validation_loss, 2)}")
-    print(f"Total Validation Accuracy: {round(validation_accuracy, 2)}")
-    print(f"Averaged Validation Loss: {round(validation_loss/len(validation_dataloader.dataset), 2)}")
+    print(f"Total Validation Loss: {validation_loss}")
+    print(f"Total Validation Accuracy: {validation_accuracy}")
 
 if __name__ == '__main__':
     main()
