@@ -158,7 +158,7 @@ def main():
     plt.savefig(f"{config.name}_accuracy.png")
     plt.close()
 
-    # Plot accuracy
+    # Plot loss
     plt.figure(figsize=(10, 5))
     plt.plot(epochs, all_training_losses, label="Training Loss", marker='o')
     plt.plot(epochs, all_validation_losses, label="Validation Loss", marker='o')
