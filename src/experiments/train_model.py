@@ -76,7 +76,7 @@ def main():
     tokenizer = AutoTokenizer.from_pretrained(dataset_config.tokenizer)
 
     dataset = torch.load(dataset_path)
-    train_dataloader, val_dataloader = get_split(dataset)
+    train_dataloader, val_dataloader = get_split(dataset, batch_size=16)
 
     # (3) Load Training Parameters
     train_config = TrainConfig()
