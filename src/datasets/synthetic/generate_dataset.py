@@ -73,10 +73,10 @@ def main():
     )
     
     mingru_dataset = MinGRUSyntheticDataset(examples, labels, tokenizer, max_length=config.max_seq_len+2)
-    mingru_dataset = TransformerSyntheticDataset(examples, labels, tokenizer, max_length=config.max_seq_len)
+    transformer_dataset = TransformerSyntheticDataset(examples, labels, tokenizer, max_length=config.max_seq_len)
 
     torch.save(mingru_dataset, f"mingru_{dataset_path}.pt")
-    torch.save(mingru_dataset, f"transformer_{dataset_path}.pt")
+    torch.save(transformer_dataset, f"transformer_{dataset_path}.pt")
 
 
 if __name__ == '__main__':

@@ -1,39 +1,37 @@
 import time
 import torch
 import torch.profiler
+import numpy as np
 
-def profile(model, input, attention_mask, device, is_sequential=False):
+def profile(dataloader, device, model, loss_fn, optimizer, warmup_steps=5, profile_steps=5):
     # Warm up
-    for _ in range(0,5):
-        parallel_output = model(input, mask=attention_mask, is_sequential=is_sequential)
-  
-    # Profile memory usage
-    if device.type == 'cuda':
-        torch.cuda.reset_peak_memory_stats() 
-    with torch.profiler.profile(
-        activities=[
-            torch.profiler.ProfilerActivity.CPU,
-            torch.profiler.ProfilerActivity.CUDA,
-        ] if torch.cuda.is_available() else [torch.profiler.ProfilerActivity.CPU],
-    ) as prof:
-        cur_max_memory = 0
-        parallel_output = model(input, mask=attention_mask, is_sequential=is_sequential)
-        if device.type == 'cuda':
-            cur_max_memory = torch.cuda.max_memory_allocated() / (1024 * 1024)
-        else:
-            for event in prof.key_averages():
-                if event.cpu_memory_usage is not None:
-                    cur_max_memory = max(cur_max_memory, event.cpu_memory_usage / (1024 * 1024))
+    for _ in range(0, warmup_steps):
+        train_epoch(dataloader, device, model, loss_fn, optimizer)
     
-    # Profile time
-    t0 = time.time()
-    parallel_output = model(input, mask=attention_mask, is_sequential=is_sequential)
-    if torch.cuda.is_available():
-        torch.cuda.synchronize()
-    t1 = time.time()
-    time_elapsed = t1 - t0
-            
-    return cur_max_memory, time_elapsed, parallel_output
+    # Profile steps
+    max_memory_times = np.array([])
+    time_per_epochs = np.array([])
+    for _ in range(0, profile_steps):
+        if device.type == 'cuda':
+            torch.cuda.reset_peak_memory_stats() 
+        with torch.profiler.profile(
+            activities=[
+                torch.profiler.ProfilerActivity.CPU,
+                torch.profiler.ProfilerActivity.CUDA,
+            ] if torch.cuda.is_available() else [torch.profiler.ProfilerActivity.CPU],
+        ) as prof:
+            cur_max_memory = 0
+            _, _, epoch_time, _ = train_epoch(dataloader, device, model, loss_fn, optimizer)
+            if device.type == 'cuda':
+                cur_max_memory = torch.cuda.max_memory_allocated() / (1024 * 1024)
+            else:
+                for event in prof.key_averages():
+                    if event.cpu_memory_usage is not None:
+                        cur_max_memory = max(cur_max_memory, event.cpu_memory_usage / (1024 * 1024))
+            max_memory_times = np.append(max_memory_times, cur_max_memory)
+            time_per_epochs = np.append(time_per_epochs, epoch_time)
+
+    return np.mean(max_memory_times), np.mean(time_per_epochs), np.std(time_per_epochs), np.std(max_memory_times)
 
 def evaluate(model, dataloader, loss_fn):
     with torch.no_grad():
