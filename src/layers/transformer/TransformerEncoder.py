@@ -37,7 +37,7 @@ class TransformerEncoder(nn.Module):
                 chunked_mask = chunked_mask.reshape(batch_size * num_chunks, self.chunk_size)
                 chunked_mask[chunked_mask.all(dim=1)] = False # Attend to rows that are exclusively padding tokens (as they will be masked out later)
 
-        # ositional Encoding after chunking
+        # Positional Encoding after chunking
         x = self.pos_encoder(x)
 
         for layer in self.layers:
