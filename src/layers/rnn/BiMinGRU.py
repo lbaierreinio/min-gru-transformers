@@ -11,17 +11,15 @@ class BiMinGRU(nn.Module):
         self.linear = nn.Linear(2 * dim_hidden, dim_hidden)
 
     def forward(self, x, mask=None, h_prev=None):
-        if h_prev is not None: 
+        if h_prev is not None: # Sequential
             h_prev_forward, h_prev_backward = h_prev # (B, H)
-            x = x # (B, E)
-            mask = mask # (B)
-            h_forward = self.forward_rnn(x, mask=mask, h_prev=h_prev_forward)
-            h_backward = self.backward_rnn(x, mask=mask, h_prev=h_prev_backward)
+            mask_forward, mask_backward = mask # (B)
+            h_forward = self.forward_rnn(x, mask=mask_forward, h_prev=h_prev_forward)
+            h_backward = self.backward_rnn(x, mask=mask_backward, h_prev=h_prev_backward)
             concat = torch.cat((h_forward, h_backward), dim=1)
             out = self.linear(concat)
             return out, h_forward, h_backward
-   
-        else:
+        else: # Parallel
             x_reversed = x.flip(dims=[1])
             mask_reversed = mask.flip(dims=[1]) if mask is not None else None
             out_forward = self.forward_rnn(x, mask=mask)
