@@ -33,8 +33,8 @@ class TransformerConfig:
     num_classes = 4
     ffn_num_hiddens = 1024
     dropout = 0.1
-    max_len: int = 4096
-    chunk_size: int = 512
+    max_len: int = 2560
+    chunk_size: int = None
 
 @dataclass
 class TrainConfig:
@@ -42,7 +42,7 @@ class TrainConfig:
     Configuration for training.
     """
     learning_rate: float = 3e-4
-    num_epochs: int = 5
+    num_epochs: int = 100
     early_stopping: bool = True
     num_classes: int = 8
     early_stopping_threshold: float = 0.95
@@ -76,7 +76,7 @@ def main():
     tokenizer = AutoTokenizer.from_pretrained(dataset_config.tokenizer)
 
     dataset = torch.load(dataset_path)
-    train_dataloader, val_dataloader = get_split(dataset, batch_size=8)
+    train_dataloader, val_dataloader = get_split(dataset, batch_size=16)
 
     # (3) Load Training Parameters
     train_config = TrainConfig()
