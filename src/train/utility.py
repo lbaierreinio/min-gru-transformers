@@ -55,7 +55,19 @@ def train_epoch(dataloader, device, model, loss_fn, optimizer):
         
     return (training_loss / steps), (total_correct / len(dataloader.dataset)), epoch_time, steps
 
-def train(model, train_dataloader, val_dataloader, num_epochs, loss_fn, optimizer, *, early_stopping_threshold=None, validate_every_i=1, accumulate_every_i = 1, patience=10):
+def train(
+        model, 
+        train_dataloader, 
+        val_dataloader, 
+        num_epochs, 
+        loss_fn, 
+        optimizer, 
+        *, 
+        early_stopping_threshold=None, 
+        validate_every_i=1, 
+        patience=10
+    ):
+
     steps = 0
     total_time = 0
     best_validation_accuracy = 0
@@ -99,7 +111,7 @@ def train(model, train_dataloader, val_dataloader, num_epochs, loss_fn, optimize
         best_training_loss = min(best_training_loss, training_loss)
         best_training_accuracy = max(best_training_accuracy, training_accuracy)
 
-        if (epoch+1) % validate_every_i == 0:
+        if (epoch+1) % validate_every_i == 0 or epoch == num_epochs - 1:
             validation_loss, validation_accuracy = evaluate(
                 model, val_dataloader, loss_fn, 'Validation')
             
@@ -119,12 +131,17 @@ def train(model, train_dataloader, val_dataloader, num_epochs, loss_fn, optimize
             all_validation_losses.append(validation_loss)
             all_validation_accuracies.append(validation_accuracy)
             
-            results = (round(best_training_loss,2), round(best_validation_loss,2), round(best_training_accuracy,2), round(best_validation_accuracy,2), round(validation_loss,2), round(validation_accuracy,2), steps, epoch+1, round(total_time / (epoch + 1), 2), max_memory, all_training_losses, all_training_accuracies, all_validation_losses, all_validation_accuracies)
+            results = (round(best_training_loss,2), round(best_validation_loss,2), round(best_training_accuracy,2), \
+                       round(best_validation_accuracy,2), round(validation_loss,2), round(validation_accuracy,2), \
+                       steps, epoch+1, round(total_time / (epoch + 1), 2), max_memory, all_training_losses, \
+                       all_training_accuracies, all_validation_losses, all_validation_accuracies)
 
+            # Check for early stopping threshold
             if early_stopping_threshold is not None and best_validation_accuracy >= early_stopping_threshold and best_training_accuracy >= early_stopping_threshold:
                 print(f"Early stopping at epoch {epoch} due to reaching early stopping threshold")
                 return results
             
+            # Check for lack of improvement
             if training_accuracy >= 0.75 and training_accuracy <= best_training_accuracy + 0.05:
                 patience_counter += 1
                 if patience_counter >= patience:
@@ -132,9 +149,9 @@ def train(model, train_dataloader, val_dataloader, num_epochs, loss_fn, optimize
                     return results
             else:
                 patience_counter = 0
+            
+            # Return at last iteration
+            if epoch >= num_epochs - 1:
+                print(f"Training completed after {epoch} epochs")
+                return results
 
-    validation_loss, validation_accuracy = evaluate(
-        model, val_dataloader, loss_fn, 'Validation')
-    best_validation_accuracy = max(best_validation_accuracy, validation_accuracy)
-    best_validation_loss = min(best_validation_loss, validation_loss)
-    return (round(best_training_loss,2), round(best_validation_loss,2), round(best_training_accuracy,2), round(best_validation_accuracy,2), round(validation_loss,2), round(validation_accuracy,2), steps, num_epochs, round(total_time / (epoch + 1), 2), max_memory, all_training_losses, all_training_accuracies, all_validation_losses, all_validation_accuracies)

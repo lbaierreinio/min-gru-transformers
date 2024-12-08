@@ -117,8 +117,13 @@ def main():
         gpu_name = torch.cuda.get_device_name(0)
 
     # (5) Train Model
-    best_training_loss, best_validation_loss, best_training_accuracy, best_validation_accuracy, validation_loss, validation_accuracy, steps, total_epochs, time_per_epoch, max_memory, all_training_losses, all_training_accuracies, all_validation_losses, all_validation_accuracies = train(
-        model, train_dataloader, val_dataloader, train_config.num_epochs, loss_fn, optimizer, early_stopping_threshold=train_config.early_stopping_threshold)
+    best_training_loss, best_validation_loss, best_training_accuracy, best_validation_accuracy, \
+    validation_loss, validation_accuracy, steps, total_epochs, time_per_epoch, max_memory, \
+    all_training_losses, all_training_accuracies, all_validation_losses, all_validation_accuracies \
+    = train(
+        model, train_dataloader, val_dataloader, train_config.num_epochs, loss_fn, optimizer, \
+            early_stopping_threshold=train_config.early_stopping_threshold
+        )
     
     # Save model & final results in a CSV file
     torch.save(model, f"{config.name}.pt")
