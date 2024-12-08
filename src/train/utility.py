@@ -86,7 +86,7 @@ def train(
     
     for epoch in range(0, num_epochs):
         cur_max_memory = 0
-        if epoch == 5: # Only profile memory once (significant overhead and does not fluctuate between epochs)
+        if (epoch+1) == 5: # Only profile memory once (significant overhead and does not fluctuate between epochs)
             if device.type == 'cuda':
                 torch.cuda.reset_peak_memory_stats()    
             with torch.profiler.profile(

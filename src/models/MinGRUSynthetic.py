@@ -15,10 +15,10 @@ class MinGRUSynthetic(nn.Module):
         # Classifier head
         self.linear = nn.Linear(embedding_dim, num_classes)
 
-    def forward(self, x, mask=None):
+    def forward(self, x, mask=None, is_sequential=False):
         x = self.embedding(x)
         for layer in self.layers:
-            x = layer(x, mask=mask)
+            x = layer(x, mask=mask, is_sequential=is_sequential)
         x = self.linear(x[:, -1])
 
         return x

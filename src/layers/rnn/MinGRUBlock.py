@@ -27,7 +27,7 @@ class MinGRUBlock(nn.Module):
         self.ln_2 = nn.LayerNorm(hidden_dim)
         self.ffn = FFN(hidden_dim, dropout)
 
-    def forward(self, x, mask=None):
-        x = x + self.minGRU(self.ln_1(x), mask=mask)
+    def forward(self, x, mask=None, is_sequential=False):
+        x = x + self.minGRU(self.ln_1(x), mask=mask, is_sequential=is_sequential)
         x = x + self.ffn(self.ln_2(x))
         return x
