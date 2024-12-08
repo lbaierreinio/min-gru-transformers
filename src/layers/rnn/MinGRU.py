@@ -10,6 +10,8 @@ class MinGRU(nn.Module):
         self.linear_z = nn.Linear(dim_in, dim_hidden)
         # Linear layer for producing candidate state h_tilde from x
         self.linear_h = nn.Linear(dim_in, dim_hidden)
+        self.dim_hidden = dim_hidden
+        self.dim_in = dim_in
 
     def parallel_scan_log(self, log_a, log_b, mask=None):
         """
@@ -53,7 +55,7 @@ class MinGRU(nn.Module):
         """
         return torch.where(x >= 0, torch.log(F.relu(x)+0.5), -F.softplus(-x))
 
-    def forward(self, x, *, h_prev=None, mask=None):
+    def forward(self, x, *, mask=None, is_sequential = False):
         """
         Compute the forward pass. Note that if h_prev is not none,
         then we assume the model is processing tokens sequentially.
@@ -67,30 +69,40 @@ class MinGRU(nn.Module):
 
         Args:
             x: torch.Tensor [batch_size, seq_len, dim_in]
-            h_prev (optional): torch.Tensor [batch_size, seq_len, dim_hidden]
             mask (optional): torch.Tensor [batch_size, seq_len]
+            is_sequential (optional): bool
         Returns:
             h: torch.Tensor [batch_size, seq_len, dim_hidden]
         """
         k = self.linear_z(x)
         tilde_h = self.linear_h(x)  # Candidate state
 
-        if h_prev is not None:  # Sequential mode
-            assert x.shape[1] == 1
-            z = torch.sigmoid(k)
-            tilde_h = self.g(tilde_h)
-            h = ((1 - z) * h_prev) + (z * tilde_h)  # h[t]
+        if is_sequential:  # Sequential mode
+            batch_size, seq_len, _ = x.shape
+            h_prev = torch.zeros(batch_size, self.dim_hidden)
+            h = torch.zeros(batch_size, 0, self.dim_hidden)
+
+            for t in range(seq_len): # Iterate over sequence length
+                k_t = k[:, t, :]
+                tilde_h_t = tilde_h[:, t, :]
+                z_t = torch.sigmoid(k_t)
+                tilde_h_t_p = self.g(tilde_h_t)
+                h_prev = ((1 - z_t) * h_prev) + (z_t * tilde_h_t_p)
+                if mask is not None:
+                    mask_t = mask[:, t]
+                    h_prev = h_prev.masked_fill(mask_t.unsqueeze(-1), 0)
+                h = torch.cat((h, h_prev.unsqueeze(1)), dim=1)
         else:  # Parallel Mode
             # NOTE: the implementation provided in the paper allows providing an explicit
             #       starting state h_0; we fix h_0 (implicitly) to be zero initialized
             log_z = -F.softplus(-k)  # Log (z)
             log_one_minus_z = -F.softplus(k)  # Log (1 - z)
             log_tilde_h = self.log_g(tilde_h)  # Log candidate state
-  
-            mask = mask.unsqueeze(-1) if mask is not None else None
-            h = self.parallel_scan_log(
-                log_one_minus_z, log_z + log_tilde_h, mask)  # Hidden states
 
-            if mask is not None:
-                h = h.masked_fill(mask, 0)
+            h = self.parallel_scan_log(
+                log_one_minus_z, log_z + log_tilde_h, mask.unsqueeze(-1) if mask is not None else None)  # Hidden states
+
+        if mask is not None:
+            mask = mask.unsqueeze(-1)
+            h = h.masked_fill(mask, 0)
         return h
