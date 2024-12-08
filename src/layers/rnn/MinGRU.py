@@ -77,6 +77,9 @@ class MinGRU(nn.Module):
         k = self.linear_z(x)
         tilde_h = self.linear_h(x)  # Candidate state
 
+        if mask is not None:
+            mask = mask.unsqueeze(-1)
+
         if is_sequential:  # Sequential mode
             batch_size, seq_len, _ = x.shape
             h_prev = torch.zeros(batch_size, self.dim_hidden)
@@ -89,7 +92,7 @@ class MinGRU(nn.Module):
                 tilde_h_t_p = self.g(tilde_h_t)
                 h_prev = ((1 - z_t) * h_prev) + (z_t * tilde_h_t_p)
                 if mask is not None:
-                    mask_t = mask[:, t]
+                    mask_t = mask.squeeze(-1)[:, t]
                     h_prev = h_prev.masked_fill(mask_t.unsqueeze(-1), 0)
                 h = torch.cat((h, h_prev.unsqueeze(1)), dim=1)
         else:  # Parallel Mode
@@ -100,9 +103,8 @@ class MinGRU(nn.Module):
             log_tilde_h = self.log_g(tilde_h)  # Log candidate state
 
             h = self.parallel_scan_log(
-                log_one_minus_z, log_z + log_tilde_h, mask.unsqueeze(-1) if mask is not None else None)  # Hidden states
+                log_one_minus_z, log_z + log_tilde_h, mask)  # Hidden states
 
         if mask is not None:
-            mask = mask.unsqueeze(-1)
             h = h.masked_fill(mask, 0)
         return h
