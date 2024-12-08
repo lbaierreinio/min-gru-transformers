@@ -75,6 +75,9 @@ class MinGRU(nn.Module):
         k = self.linear_z(x)
         tilde_h = self.linear_h(x)  # Candidate state
 
+        if mask is not None:
+            mask = mask.unsqueeze(-1)
+
         if h_prev is not None:  # Sequential mode
             assert x.shape[1] == 1
             z = torch.sigmoid(k)
@@ -87,10 +90,9 @@ class MinGRU(nn.Module):
             log_one_minus_z = -F.softplus(k)  # Log (1 - z)
             log_tilde_h = self.log_g(tilde_h)  # Log candidate state
   
-            mask = mask.unsqueeze(-1) if mask is not None else None
             h = self.parallel_scan_log(
                 log_one_minus_z, log_z + log_tilde_h, mask)  # Hidden states
 
-            if mask is not None:
-                h = h.masked_fill(mask, 0)
+        if mask is not None:
+            h = h.masked_fill(mask, 0)
         return h
