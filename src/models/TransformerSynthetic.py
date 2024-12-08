@@ -8,15 +8,11 @@ class TransformerSynthetic(nn.Module):
 
         self.transformer_encoder = TransformerEncoder(
             vocab_size, num_heads, num_layers, num_hiddens, ffn_num_hiddens, dropout, max_len, chunk_size)
-        
-        self.classification_head = nn.Sequential(
-            nn.Dropout(dropout),
-            nn.Linear(num_hiddens, num_classes),
-        )
         self.dropout = nn.Dropout(dropout)
         self.fc_out = nn.Linear(num_hiddens, num_classes)
 
     def forward(self, x, mask=None):
         x = self.transformer_encoder(x, mask)
-        x = self.classification_head(x)
+        x = self.dropout(x)
+        x = self.fc_out(x)
         return x
