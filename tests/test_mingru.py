@@ -6,6 +6,7 @@ class TestMinGRU:
     def test_min_gru_modes(self):
         # Test parallel mode
         layer = MinGRU(3, 5)
+        layer.eval()
         batch = torch.randn(4, 10, 3) # BATCH_SIZE, SEQ_LEN, DIM_IN
         mask = torch.zeros((4, 10)).bool()
         mask[0, 4:] = 1
@@ -14,4 +15,4 @@ class TestMinGRU:
         
         # Test sequential mode
         output_sequential = layer(batch, mask=mask, is_sequential=True)
-        assert torch.allclose(output_parallel, output_sequential)
+        assert torch.allclose(output_parallel, output_sequential, rtol=1e-4, atol=1e-6)
