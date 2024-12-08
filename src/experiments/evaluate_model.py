@@ -28,7 +28,7 @@ def main():
     loss_fn = torch.nn.CrossEntropyLoss()
 
     validation_loss, validation_accuracy = evaluate(
-        model, validation_dataloader, loss_fn, evaluation_type='Validation')
+        model, validation_dataloader, loss_fn)
 
     print(f"Total Validation Loss: {validation_loss}")
     print(f"Total Validation Accuracy: {validation_accuracy}")

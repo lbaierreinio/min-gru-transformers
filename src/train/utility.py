@@ -2,7 +2,7 @@ import time
 import torch
 import torch.profiler
 
-def evaluate(model, dataloader, loss_fn, evaluation_type='Validation'):
+def evaluate(model, dataloader, loss_fn):
     with torch.no_grad():
         model.eval()
         total_loss = 0.
@@ -113,7 +113,7 @@ def train(
 
         if (epoch+1) % validate_every_i == 0 or epoch == num_epochs - 1:
             validation_loss, validation_accuracy = evaluate(
-                model, val_dataloader, loss_fn, 'Validation')
+                model, val_dataloader, loss_fn)
             
             best_validation_accuracy = max(best_validation_accuracy, validation_accuracy)
             best_validation_loss = min(best_validation_loss, validation_loss)
