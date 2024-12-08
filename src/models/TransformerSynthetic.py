@@ -1,18 +1,18 @@
 import torch.nn as nn
-from layers.transformer.LongTransformerEncoder import LongTransformerEncoder
+from layers.transformer.TransformerEncoder import TransformerEncoder
 
 
 class TransformerSynthetic(nn.Module):
-    def __init__(self, *, vocab_size, num_heads, num_layers, num_classes, num_hiddens=512, ffn_num_hiddens=2048, dropout=0.1, chunk_size=512, max_len=2048, bias=False):
+    def __init__(self, *, vocab_size, num_heads, num_layers, num_classes, num_hiddens=128, ffn_num_hiddens=512, dropout=0.1, max_len=2048, chunk_size=None):
         super().__init__()
 
-        self.long_transformer_encoder = LongTransformerEncoder(
-            vocab_size, num_heads, num_layers, num_hiddens, ffn_num_hiddens, dropout, chunk_size, max_len, bias)
+        self.transformer_encoder = TransformerEncoder(
+            vocab_size, num_heads, num_layers, num_hiddens, ffn_num_hiddens, dropout, max_len, chunk_size)
         self.dropout = nn.Dropout(dropout)
         self.fc_out = nn.Linear(num_hiddens, num_classes)
 
     def forward(self, x, mask=None):
-        x = self.long_transformer_encoder(x, mask=mask)
+        x = self.transformer_encoder(x, mask)
         x = self.dropout(x)
         x = self.fc_out(x)
         return x

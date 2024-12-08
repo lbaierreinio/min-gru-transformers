@@ -5,3 +5,4 @@ __pycache__/
 sinfo
 .ipynb_checkpoints/
 log/
+*.png

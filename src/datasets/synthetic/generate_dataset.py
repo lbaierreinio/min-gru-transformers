@@ -13,14 +13,15 @@ class DatasetConfig:
     """
     Configuration of the experiment.
     """
-    min_seq_len: int = 32
-    max_seq_len: int = 128
-    num_examples: int = 2000
+    min_seq_len: int = None
+    max_seq_len: int = 4096
+    num_examples: int = 1000
     tokenizer: str = 'bert-base-uncased'
-    alpha: int = 1
+    alpha: int = 4
     beta: int = 2
-    k_split: float = 0.02
-    k_indicator: float = 0.1
+    k_split: float = 0.3
+    k_indicator: float = 0.8
+
 
 """
 Script to generate and save a synthetic dataset given the current state
@@ -45,23 +46,19 @@ def main():
 
     grammars = [
         {
-            'S': [(0.25, 'A'), (0.25, 'B'), (0.25, 'C'), (0.25, 'D')],
-            'A': [(0.25, 'A'), (0.25, 'B'), (0.25, 'C'), (0.25, 'D')],
-            'B': [(0.25, 'A'), (0.25, 'B'), (0.25, 'C'), (0.25, 'D')],
-            'C': [(0.25, 'A'), (0.25, 'B'), (0.25, 'C'), (0.25, 'D')],
-            'D': [(0.25, 'A'), (0.25, 'B'), (0.25, 'C'), (0.25, 'D')],
+            'S': [(0.80, 'A'), (0.20, 'B')],
+            'A': [(0.80, 'A'), (0.20, 'B')],
+            'B': [(0.80, 'A'), (0.20, 'B')],
         },
         {
-            'S': [(0.25, 'A'), (0.25, 'B'), (0.25, 'C'), (0.25, 'D')],
-            'A': [(0.05, 'A'), (0.85, 'B'), (0.05, 'C'), (0.05, 'D')],
-            'B': [(0.05, 'A'), (0.05, 'B'), (0.85, 'C'), (0.05, 'D')],
-            'C': [(0.05, 'A'), (0.05, 'B'), (0.05, 'C'), (0.85, 'D')],
-            'D': [(0.85, 'A'), (0.05, 'B'), (0.05, 'C'), (0.05, 'D')],
+            'S': [(0.80, 'B'), (0.20, 'C')],
+            'B': [(0.80, 'B'), (0.20, 'C')],
+            'C': [(0.80, 'B'), (0.20, 'C')],
         },
     ]
 
     examples, labels = generate_dataset8(
-        min_seq_len=None,
+        min_seq_len=config.min_seq_len,
         max_seq_len=config.max_seq_len,
         num_examples=config.num_examples,
         alpha=config.alpha,
@@ -70,13 +67,12 @@ def main():
         k_indicator=config.k_indicator,
         grammars=grammars,
     )
-
-    transformer_dataset = TransformerSyntheticDataset(examples, labels, tokenizer, config.max_seq_len)
     
-    mingru_dataset = MinGRUSyntheticDataset(examples, labels, tokenizer)
+    mingru_dataset = MinGRUSyntheticDataset(examples, labels, tokenizer, max_length=config.max_seq_len+2)
+    mingru_dataset = TransformerSyntheticDataset(examples, labels, tokenizer, max_length=config.max_seq_len)
 
-    torch.save(transformer_dataset, f"transformer_{dataset_path}.pt")
     torch.save(mingru_dataset, f"mingru_{dataset_path}.pt")
+    torch.save(mingru_dataset, f"transformer_{dataset_path}.pt")
 
 
 if __name__ == '__main__':

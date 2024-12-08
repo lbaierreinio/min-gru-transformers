@@ -31,7 +31,7 @@ the model is asked to solve two tasks simultaneously:
 '''
 
 
-def generate_dataset8(*, min_seq_len=None, max_seq_len, num_examples, grammars, alpha, beta, k_split=None, k_indicator):
+def generate_dataset8(*, min_seq_len=None, max_seq_len, num_examples, grammars, alpha, beta, k_split=None, k_indicator=None):
     assert len(grammars) == 2, "Must provide two distinct grammars"
     assert min_seq_len is None or min_seq_len >= 32, "Sequence length must be at least 32"
     assert num_examples > 100, "Number of examples must be greater than 100"
@@ -61,17 +61,18 @@ def generate_dataset8(*, min_seq_len=None, max_seq_len, num_examples, grammars, 
             grammars[order[0]], split) + generate_grammar(grammars[order[1]], cur_seq_len - split)
 
         # Draw indicator tokens from normal distribution centered around middle of sequence
-        idx_one = get_indicator_idx(cur_seq_len, k_indicator)
-        idx_two = get_indicator_idx(cur_seq_len, k_indicator)
-        if idx_one == idx_two:
-          idx_two += np.random.choice([-1, 1])
+        if k_indicator is not None:
+            idx_one = get_indicator_idx(cur_seq_len, k_indicator)
+            idx_two = get_indicator_idx(cur_seq_len, k_indicator)
+            if idx_one == idx_two:
+                idx_two += np.random.choice([-1, 1])
 
-        sequence[idx_one] = np.random.choice(indicators)
-        sequence[idx_two] = np.random.choice(indicators)
+            sequence[idx_one] = np.random.choice(indicators)
+            sequence[idx_two] = np.random.choice(indicators)
 
-        # Compute label
-        if sequence[idx_one] == sequence[idx_two]:
-            label += len(orders)
+            # Compute label
+            if sequence[idx_one] == sequence[idx_two]:
+                label += len(orders)
 
         examples[_] = sequence
 
@@ -89,7 +90,7 @@ def get_split(dataset, *, batch_size=32, validation_split=0.1, seed=42):
     train_dataset, val_dataset = torch.utils.data.random_split(
         dataset, [len(dataset) - val_size, val_size])
     train_dataloader = DataLoader(
-        train_dataset, batch_size=batch_size, shuffle=False)
+        train_dataset, batch_size=batch_size, shuffle=True)
     val_dataloader = DataLoader(
         val_dataset, batch_size=batch_size, shuffle=False)
 

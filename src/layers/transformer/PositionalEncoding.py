@@ -15,9 +15,7 @@ class PositionalEncoding(nn.Module):
         pe[:, 0::2] = torch.sin(position * div_term)
         pe[:, 1::2] = torch.cos(position * div_term)
 
-        # adds batch dimension; shape (batch_size, seq_len, embedding_dim)
         pe = pe.unsqueeze(0)
-        # similar to .cuda() -> uses pytorch device management
         self.register_buffer('pe', pe)
 
     def forward(self, x):

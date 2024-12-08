@@ -5,8 +5,8 @@ import pandas as pd
 def create_file(path):
     data = []
     # adding header
-    headerList = ['Model', 'Layers', 'Parameters', 'Sequence Length', 'Dataset Size', 'Training Steps',
-                  'Number of Epochs', 'Training Time', 'Memory Per Epoch', 'Validation Accuracy', 'Validation Loss']
+    headerList = ['Model', 'Layers', 'Parameters', 'Dataset Path', 'Training Steps',
+                  'Number of Epochs', 'Time Per Epoch', 'Validation Accuracy', 'Best Validation Accuracy', 'Validation Loss', 'Best Validation Loss', 'Best Training Loss', 'Best Training Accuracy', 'Max Memory', 'GPU']
 
     # Convert the data to a DataFrame
     df = pd.DataFrame(data, columns=headerList)
@@ -26,13 +26,17 @@ def get_new_row():
         'Model': None,
         'Layers': None,
         'Parameters': None,
-        'Sequence Length': None,
-        'Dataset Size': None,
+        'Dataset Path': None,
         'Training Steps': None,
         'Number of Epochs': None,
-        'Training Time': None,
-        'Memory Per Epoch': None,
+        'Time Per Epoch': None,
         'Validation Accuracy': None,
-        'Validation Loss': None
+        'Best Validation Accuracy': None,
+        'Validation Loss': None,
+        'Best Validation Loss': None,
+        'Best Training Loss': None,
+        'Best Training Accuracy': None,
+        'Max Memory': None,
+        'GPU': None
     }
     return new_row

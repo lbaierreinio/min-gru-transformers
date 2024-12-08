@@ -79,7 +79,7 @@ class MinGRU(nn.Module):
             assert x.shape[1] == 1
             z = torch.sigmoid(k)
             tilde_h = self.g(tilde_h)
-            h = (1 - z) * h_prev + z * tilde_h  # h[t]
+            h = ((1 - z) * h_prev) + (z * tilde_h)  # h[t]
         else:  # Parallel Mode
             # NOTE: the implementation provided in the paper allows providing an explicit
             #       starting state h_0; we fix h_0 (implicitly) to be zero initialized
