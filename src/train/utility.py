@@ -2,6 +2,39 @@ import time
 import torch
 import torch.profiler
 
+def profile(model, input, attention_mask, device, is_sequential=False):
+    # Warm up
+    for _ in range(0,5):
+        parallel_output = model(input, mask=attention_mask, is_sequential=is_sequential)
+  
+    # Profile memory usage
+    if device.type == 'cuda':
+        torch.cuda.reset_peak_memory_stats() 
+    with torch.profiler.profile(
+        activities=[
+            torch.profiler.ProfilerActivity.CPU,
+            torch.profiler.ProfilerActivity.CUDA,
+        ] if torch.cuda.is_available() else [torch.profiler.ProfilerActivity.CPU],
+    ) as prof:
+        cur_max_memory = 0
+        parallel_output = model(input, mask=attention_mask, is_sequential=is_sequential)
+        if device.type == 'cuda':
+            cur_max_memory = torch.cuda.max_memory_allocated() / (1024 * 1024)
+        else:
+            for event in prof.key_averages():
+                if event.cpu_memory_usage is not None:
+                    cur_max_memory = max(cur_max_memory, event.cpu_memory_usage / (1024 * 1024))
+    
+    # Profile time
+    t0 = time.time()
+    parallel_output = model(input, mask=attention_mask, is_sequential=is_sequential)
+    if torch.cuda.is_available():
+        torch.cuda.synchronize()
+    t1 = time.time()
+    time_elapsed = t1 - t0
+            
+    return cur_max_memory, time_elapsed, parallel_output
+
 def evaluate(model, dataloader, loss_fn):
     with torch.no_grad():
         model.eval()
