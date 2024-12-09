@@ -1,18 +1,21 @@
 from layers.rnn.MinGRU import MinGRU
 import torch
 
-
 class TestMinGRU:
     def test_min_gru_modes(self):
-        # Test parallel mode
-        layer = MinGRU(3, 5)
-        layer.eval()
-        batch = torch.randn(4, 10, 3) # BATCH_SIZE, SEQ_LEN, DIM_IN
-        mask = torch.zeros((4, 10)).bool()
-        mask[0, 4:] = 1
-        mask[1, 3:] = 1
-        output_parallel = layer(batch, mask=mask, is_sequential=False)
+        batch_size, seq_len, embedding_dim = 2, 8, 4
+
+        model = MinGRU(dim_in=embedding_dim, dim_hidden=embedding_dim)
+        model.eval()
+
+        x = torch.randn((batch_size, seq_len, embedding_dim))
+
+        h_prev = torch.zeros((batch_size, embedding_dim))
+        out_sequential = torch.zeros((batch_size, seq_len, embedding_dim))
+        for i in range(seq_len):
+            h_prev = model(x[:, i], h_prev=h_prev)
+            out_sequential[:, i] = h_prev
         
-        # Test sequential mode
-        output_sequential = layer(batch, mask=mask, is_sequential=True)
-        assert torch.allclose(output_parallel, output_sequential, rtol=1e-4, atol=1e-6)
+        out_parallel = model(x)
+
+        assert torch.allclose(out_sequential, out_parallel, rtol=1e-4, atol=1e-6)
