@@ -3,7 +3,7 @@ import torch
 import torch.profiler
 import numpy as np
 
-def profile(dataloader, device, model, loss_fn, optimizer, warmup_steps=5, profile_steps=5):
+def profile_train(dataloader, device, model, loss_fn, optimizer, warmup_steps=5, profile_steps=5):
     # Warm up
     for _ in range(0, warmup_steps):
         train_epoch(dataloader, device, model, loss_fn, optimizer)
@@ -22,6 +22,40 @@ def profile(dataloader, device, model, loss_fn, optimizer, warmup_steps=5, profi
         ) as prof:
             cur_max_memory = 0
             _, _, epoch_time, _ = train_epoch(dataloader, device, model, loss_fn, optimizer)
+            if device.type == 'cuda':
+                cur_max_memory = torch.cuda.max_memory_allocated() / (1024 * 1024)
+            else:
+                for event in prof.key_averages():
+                    if event.cpu_memory_usage is not None:
+                        cur_max_memory = max(cur_max_memory, event.cpu_memory_usage / (1024 * 1024))
+            max_memory_times = np.append(max_memory_times, cur_max_memory)
+            time_per_epochs = np.append(time_per_epochs, epoch_time)
+
+    return np.mean(max_memory_times), np.mean(time_per_epochs), np.std(time_per_epochs), np.std(max_memory_times)
+
+def profile_inference(model, sequence_length, vocab_size, device, warmup_steps=5, profile_steps=25, is_sequential=False):
+    example = torch.randint(0, vocab_size, (1, sequence_length)).to(device)
+    # Warm up
+    for _ in range(0, warmup_steps):
+        with torch.no_grad():
+            model(example, is_sequential=is_sequential)
+    # Profile steps
+    max_memory_times = np.array([])
+    time_per_epochs = np.array([])
+    for _ in range(0, profile_steps):
+        with torch.profiler.profile(
+            activities=[
+                torch.profiler.ProfilerActivity.CPU,
+                torch.profiler.ProfilerActivity.CUDA,
+            ] if torch.cuda.is_available() else [torch.profiler.ProfilerActivity.CPU],
+        ) as prof:
+            start = time.time()
+            with torch.no_grad():
+                model(example, is_sequential=is_sequential)
+            if torch.cuda.is_available():
+                torch.cuda.synchronize()
+            epoch_time = time.time() - start
+            cur_max_memory = 0
             if device.type == 'cuda':
                 cur_max_memory = torch.cuda.max_memory_allocated() / (1024 * 1024)
             else:

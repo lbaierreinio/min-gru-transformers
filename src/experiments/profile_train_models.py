@@ -1,13 +1,12 @@
 import torch
 import numpy as np
 import torch.profiler
-from train.utility import profile
+from train.utility import profile_train
 from dataclasses import dataclass
 import matplotlib.pyplot as plt
 from transformers import AutoTokenizer
 from torch.utils.data import DataLoader
 from datasets.synthetic.utility import generate_dataset8
-from datasets.synthetic.utility import get_split
 from models.MinGRUSynthetic import MinGRUSynthetic
 from models.TransformerSynthetic import TransformerSynthetic
 from datasets.synthetic.TransformerSyntheticDataset import TransformerSyntheticDataset
@@ -37,7 +36,8 @@ class TransformerConfig:
     max_len: int = 4096
     chunk_size: int = 512
 
-class ProfileConfig:
+@dataclass
+class ProfileTrainConfig:
     """
     Configuration for profiling.
     """
@@ -54,7 +54,7 @@ def main():
 
     mingru_config = MinGRUConfig()
     transformer_config = TransformerConfig()
-    profile_config = ProfileConfig()
+    profile_config = ProfileTrainConfig()
 
     mingru = MinGRUSynthetic(
         vocab_size=tokenizer.vocab_size,
@@ -120,8 +120,8 @@ def main():
         
         dataset =  TransformerSyntheticDataset(examples, labels, tokenizer, max_length=seq_len)
         dataloader = DataLoader(dataset, batch_size=4, shuffle=True)
-        min_gru_mean_memory, min_gru_mean_time, min_gru_std_memory, min_gru_std_time = profile(dataloader, device, mingru, loss_fn, optimizer)
-        transformer_mean_memory, transformer_mean_time, transformer_std_memory, transformer_std_time = profile(dataloader, device, transformer, loss_fn, optimizer)
+        min_gru_mean_memory, min_gru_mean_time, min_gru_std_memory, min_gru_std_time = profile_train(dataloader, device, mingru, loss_fn, optimizer)
+        transformer_mean_memory, transformer_mean_time, transformer_std_memory, transformer_std_time = profile_train(dataloader, device, transformer, loss_fn, optimizer)
         
         # Add values
         all_min_gru_mean_memory.append(min_gru_mean_memory)
