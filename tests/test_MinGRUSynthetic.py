@@ -32,6 +32,3 @@ class TestMinGRUSynthetic:
         out_parallel = model(x, is_sequential=False, mask=mask)
 
         assert torch.allclose(out_seq, out_parallel, rtol=1e-4, atol=1e-6)
-
-
-

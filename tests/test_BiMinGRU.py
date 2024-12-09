@@ -28,6 +28,3 @@ class TestBiMinGRU:
         assert seq2_hidden_sequential.shape == seq2_hidden_batched.shape == (seq2_len, hidden_size)
         assert torch.allclose(seq1_hidden_batched, seq1_hidden_sequential, rtol=1e-4, atol=1e-6)
         assert torch.allclose(seq2_hidden_batched, seq2_hidden_sequential, rtol=1e-4, atol=1e-6)
-
-
-

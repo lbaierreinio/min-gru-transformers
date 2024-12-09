@@ -57,17 +57,15 @@ class MinGRU(nn.Module):
         """
         Compute the forward pass. Note that if h_prev is not none,
         then we assume the model is processing tokens sequentially.
-        Otherwise, we enter parallel mode. In sequential mode,
-        the sequence length should be 1. In parallel mode, the
-        sequence length should be greater than 1. We return the
+        Otherwise, we enter parallel mode. We return the
         output of the RNN and the hidden state if return_hidden is True.
 
         If mask is provided, mask out the hidden states corresponding to the True positions
         in the mask (this is used to mask out padding tokens in the sequence).
 
         Args:
-            x: torch.Tensor [batch_size, seq_len, dim_in]
-            h_prev (optional): torch.Tensor [batch_size, seq_len, dim_hidden]
+            x: torch.Tensor [batch_size, seq_len, dim_in] (parallel), [batch_size, dim_in] (sequential)
+            h_prev (optional): torch.Tensor [batch_size, dim_hidden]
             mask (optional): torch.Tensor [batch_size, seq_len]
         Returns:
             h: torch.Tensor [batch_size, seq_len, dim_hidden]
@@ -77,11 +75,10 @@ class MinGRU(nn.Module):
 
         if mask is not None:
             mask = mask.unsqueeze(-1)
-
         if h_prev is not None:  # Sequential mode
             z = torch.sigmoid(k)
             tilde_h = self.g(tilde_h)
-            h = ((1 - z) * h_prev) + (z * tilde_h)  # h[t]
+            h = ((1 - z) * h_prev) + (z * tilde_h)
         else:  # Parallel Mode
             # NOTE: the implementation provided in the paper allows providing an explicit
             #       starting state h_0; we fix h_0 (implicitly) to be zero initialized
