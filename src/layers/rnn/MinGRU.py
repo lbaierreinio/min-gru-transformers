@@ -79,7 +79,6 @@ class MinGRU(nn.Module):
             mask = mask.unsqueeze(-1)
 
         if h_prev is not None:  # Sequential mode
-            assert x.shape[1] == 1
             z = torch.sigmoid(k)
             tilde_h = self.g(tilde_h)
             h = ((1 - z) * h_prev) + (z * tilde_h)  # h[t]
@@ -92,7 +91,6 @@ class MinGRU(nn.Module):
   
             h = self.parallel_scan_log(
                 log_one_minus_z, log_z + log_tilde_h, mask)  # Hidden states
-
         if mask is not None:
             h = h.masked_fill(mask, 0)
         return h

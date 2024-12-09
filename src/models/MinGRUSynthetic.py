@@ -8,6 +8,7 @@ class MinGRUSynthetic(nn.Module):
         super().__init__()
         self.num_layers = num_layers
         self.embedding_dim = embedding_dim
+        self.bidirectional = bidirectional
         # Embedding layer
         self.embedding = nn.Embedding(vocab_size, embedding_dim)
         
@@ -22,14 +23,14 @@ class MinGRUSynthetic(nn.Module):
         if is_sequential: # Sequential
             assert not self.bidirectional, "Bidirectional not supported in sequential mode"
             batch_size, seq_len, _ = x.shape
-            h_prev = [torch.zeros(self.num_layers, batch_size, self.embedding_dim)] # (L, B, E), hidden states from previous token
+            h_prev = [torch.zeros(batch_size, self.embedding_dim) for _ in range(self.num_layers)]  # (L, B, E), hidden states from previous token
             for t in range(seq_len): # Iterate over tokens
-                x_l = x[:, t, :] # (B, E) Current token
+                x_t = x[:, t, :] # (B, E) Current token
                 for layer_idx, layer in enumerate(self.layers): # Iterate depthwise through the layers
-                    h_prev_l = h_prev[layer_idx] # (B, E) previous hidden state for current layer
                     mask_t = mask[:, t] if mask is not None else None # (B) Mask for current token
-                    h_prev[layer_idx] = layer(x_l, mask=mask_t, h_prev=h_prev_l) # Update hidden state
-            return self.linear(h_prev[-1]) # (B, C) Output logits
+                    x_t, h_prev[layer_idx] = layer(x_t, mask=mask_t, h_prev=h_prev[layer_idx]) # Update hidden state
+            
+            return self.linear(x_t) # (B, C) Output logits from last token
         else: 
             for layer in self.layers:
                 x = layer(x, mask=mask)
