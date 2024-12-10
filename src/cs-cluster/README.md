@@ -1,3 +1,7 @@
-lets-code: Load GPU into your terminal. Can interatively run files. Good for quick tests, short runs.
+## CS-CLUSTER SCRIPTS
 
-queue-sbatch: Submit job to the slurm cluster. Cannot iteratively run files. Good for long runs, big jobs.
+A few scripts for running jobs on the SLURM cluster.
+
+queue-sbatch submits a job that calls script.sh, which
+activates the appropriate Conda environment and runs
+the Python script of interest.

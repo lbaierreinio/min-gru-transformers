@@ -48,8 +48,7 @@ class TrainConfig:
     accumulate_every_i: int = 4
 
 """
-Script to generate and save a synthetic dataset given the current state
-of the dataset configuration file.
+Script to train and compare two models on a synthetic dataset.
 """
 def main():
     transformer_config = TransformerConfig()

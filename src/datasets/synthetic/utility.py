@@ -2,14 +2,19 @@ import torch
 import numpy as np
 from torch.utils.data import DataLoader
 
-'''
-Given a set of rules for a grammar (in the form of a dict),
-and a max sequence length, generate a sequence of tokens
-from said grammar.
-'''
-
-
 def generate_grammar(rules, seq_len):
+    """
+    Generate a sequence of tokens based on the provided rules.
+
+    Args:
+        rules: dict 
+            Dictionary of rules for the grammar.
+        seq_len: int 
+            Length of the sequence to be generated.
+    
+    Returns:
+        sequence: list (List of tokens generated based on the rules.)
+    """
     sequence = []
     state = 'S'
 
@@ -22,16 +27,36 @@ def generate_grammar(rules, seq_len):
 
     return sequence
 
-
-'''
-Long-Context Task for both Summarization & Long Range Dependencies. Specifically,
-the model is asked to solve two tasks simultaneously: 
-(a) Recall which order the two grammars appeared in.
-(b) Determine if the two indicator tokens are the same.
-'''
-
-
 def generate_dataset8(*, min_seq_len=None, max_seq_len, num_examples, grammars, alpha, beta, k_split=None, k_indicator=None):
+    """
+    Long-Context Task for both Summarization & Long Range Dependencies. Specifically,
+    the model is asked to solve two tasks simultaneously: 
+    (a) Recall which order the two grammars appeared in.
+    (b) Determine if the two indicator tokens are the same.
+
+    Args:
+        min_seq_len: int 
+            Minimum sequence length of the dataset. Dataset size will have fixed lenth if this argument is not provided.
+        max_seq_len: int 
+            Maximum sequence length of the dataset.
+        num_examples: int 
+            Number of examples in the dataset.
+        grammars: list 
+            List of 2 grammars to be used in the dataset.
+        alpha: int 
+            Alpha parameter for Beta distribution of the sequence length.
+        beta: int 
+            Beta parameter for Beta distribution of the sequence length.
+        k_split: float 
+            Standard deviation for the split of the two subsequences. Split is in the middle of the sequence if this argument is not provided.
+        k_indicator: float 
+            Standard deviation for the indicator tokens. No indicator tokens are inserted if this argument is not provided.
+    Returns:
+        examples: list 
+            List of examples in the dataset.
+        labels: np.array 
+            Array of labels in the dataset.
+    """
     assert len(grammars) == 2, "Must provide two distinct grammars"
     assert min_seq_len is None or min_seq_len >= 32, "Sequence length must be at least 32"
     assert min_seq_len is None or min_seq_len < max_seq_len, "Minimum sequence length must be less than maximum sequence length"
@@ -81,10 +106,41 @@ def generate_dataset8(*, min_seq_len=None, max_seq_len, num_examples, grammars, 
 
 
 def get_indicator_idx(cur_seq_len, k):
+    """
+    Select an index for the indicator token based on the current sequence length.
+    The index is drawn from a normal distribution centered around the middle of the sequence.
+
+    Args:
+        cur_seq_len: int 
+            Current sequence length.
+        k: float 
+            Scale the standard deviation for the indicator tokens.
+    
+    Returns:
+        idx: int 
+            Index for the indicator token.
+    """
     return np.clip(int(np.random.normal(cur_seq_len // 2, cur_seq_len * k)), 1, cur_seq_len - 2)
 
 
-def get_split(dataset, *, batch_size=32, validation_split=0.1, seed=42):
+def get_split(dataset, *, batch_size=32, validation_split=0.1):
+    """
+    Split the dataset into training and validation sets.
+
+    Args:
+        dataset: Dataset 
+            Dataset to be split.
+        batch_size: int 
+            Batch size for the dataloaders.
+        validation_split: float 
+            Fraction of the dataset to be used for validation.
+    
+    Returns:
+        train_dataloader: DataLoader 
+            Dataloader for the training set.
+        val_dataloader: DataLoader 
+            Dataloader for the validation set.
+    """
     val_size = int(validation_split * len(dataset))
     train_dataset, val_dataset = torch.utils.data.random_split(
         dataset, [len(dataset) - val_size, val_size])

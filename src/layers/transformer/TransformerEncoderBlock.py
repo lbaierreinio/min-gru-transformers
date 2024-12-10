@@ -1,7 +1,21 @@
 import torch.nn as nn
 
 class TransformerEncoderBlock(nn.Module):
+    """
+    A single Layer of the Transformer Encoder.
+    """
     def __init__(self, num_heads, num_hiddens, ffn_num_hiddens, dropout):
+        """
+        Args:
+            num_heads: int
+                The number of attention heads.
+            num_hiddens: int
+                The number of hidden units.
+            ffn_num_hiddens: int
+                The number of hidden units in the feedforward network.
+            dropout: float
+                The dropout probability.
+        """
         super().__init__()
         # Layer Normalization
         self.layernorm1 = nn.LayerNorm(num_hiddens)

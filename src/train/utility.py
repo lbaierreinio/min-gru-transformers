@@ -4,6 +4,21 @@ import torch.profiler
 import numpy as np
 
 def profile_train(dataloader, device, model, loss_fn, optimizer, warmup_steps=5, profile_steps=5):
+    """
+    Profile the training of a model on a dataset.
+
+    Args:
+        dataloader: The dataloader to profile
+        device: The device to use
+        model: The model to profile
+        loss_fn: The loss function to use
+        optimizer: The optimizer to use
+        warmup_steps: The number of warmup steps
+        profile_steps: The number of profile steps
+    
+    Returns:
+        The mean max memory, mean time per epoch, std time per epoch, std max memory
+    """
     # Warm up
     for _ in range(0, warmup_steps):
         train_epoch(dataloader, device, model, loss_fn, optimizer)
@@ -34,6 +49,21 @@ def profile_train(dataloader, device, model, loss_fn, optimizer, warmup_steps=5,
     return np.mean(max_memory_times), np.mean(time_per_epochs), np.std(time_per_epochs), np.std(max_memory_times)
 
 def profile_inference(model, sequence_length, vocab_size, device, warmup_steps=5, profile_steps=25, is_sequential=False):
+    """
+    Profile the inference of the MinGRU model on a dataset.
+
+    Args:
+        model: The model to profile
+        sequence_length: The sequence length to use
+        vocab_size: The vocabulary size
+        device: The device to use
+        warmup_steps: The number of warmup steps
+        profile_steps: The number of profile steps
+        is_sequential: Whether to use sequential inference or not
+    
+    Returns:
+        The mean max memory, mean time per epoch, std time per epoch, std max memory
+    """
     example = torch.randint(0, vocab_size, (1, sequence_length)).to(device)
     # Warm up
     for _ in range(0, warmup_steps):
@@ -68,6 +98,17 @@ def profile_inference(model, sequence_length, vocab_size, device, warmup_steps=5
     return np.mean(max_memory_times), np.mean(time_per_epochs), np.std(time_per_epochs), np.std(max_memory_times)
 
 def evaluate(model, dataloader, loss_fn):
+    """
+    Evaluate the model on a dataset.
+    
+    Args:
+        model: The model to evaluate
+        dataloader: The dataloader to evaluate on
+        loss_fn: The loss function to use
+    
+    Returns:
+        The mean loss, the mean accuracy
+    """
     with torch.no_grad():
         model.eval()
         total_loss = 0.
@@ -93,6 +134,20 @@ def evaluate(model, dataloader, loss_fn):
 
 
 def train_epoch(dataloader, device, model, loss_fn, optimizer, accumulate_every_i=1):
+    """
+    Evaluate the model for an epoch.
+    
+    Args:
+        dataloader: The dataloader to evaluate on
+        device: The device to use
+        model: The model to evaluate
+        loss_fn: The loss function to use
+        optimizer: The optimizer to use
+        accumulate_every_i: The number of steps to accumulate gradients over
+    
+    Returns:
+        The mean loss, the mean accuracy, the total time, the number of steps
+    """
     training_loss = 0
     total_correct = 0
     epoch_time = 0
@@ -134,6 +189,26 @@ def train(
         patience=10,
         accumulate_every_i=1
     ):
+    """
+    Train the model.
+
+    Args:
+        model: The model to use
+        train_dataloader: The training dataloader
+        val_dataloader: The validation dataloader
+        num_epochs: The number of epochs to train for
+        loss_fn: The loss function to use
+        optimizer: The optimizer to use
+        early_stopping_threshold: The threshold to stop training early
+        validate_every_i: The number of epochs to wait before validating
+        patience: The number of epochs to wait before early stopping
+        accumulate_every_i: The number of steps to accumulate gradients over
+    
+    Returns:
+        The best training loss, the best validation loss, the best training accuracy, the best validation accuracy,
+        the last validation loss, the last validation accuracy, the number of steps, the total epochs, the time per epoch, 
+        the max memory, all training losses, all training accuracies, all validation losses, all validation accuracies.
+    """
 
     steps = 0
     total_time = 0

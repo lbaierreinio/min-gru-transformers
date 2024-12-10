@@ -48,6 +48,9 @@ class ProfileTrainConfig:
     end_length: int = 4096
     step: int = 512
 
+"""
+Script to profile the training of two models on a synthetic dataset as the sequence length grows.
+"""
 def main():
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
     tokenizer = AutoTokenizer.from_pretrained('bert-base-uncased')

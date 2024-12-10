@@ -47,6 +47,9 @@ class TrainConfig:
     num_classes: int = 8
     early_stopping_threshold: float = 0.95
 
+"""
+Script to train a model on a synthetic dataset.
+"""
 def main():
     # (1) Retrieve arguments from the command line
     parser = argparse.ArgumentParser()
@@ -94,7 +97,7 @@ def main():
             bidirectional=config.bidirectional,
             num_classes=train_config.num_classes,
         ).to(device)
-    elif model == 1:
+    else:
         config = TransformerConfig()
         model = TransformerSynthetic(
             vocab_size=vocab_size,
