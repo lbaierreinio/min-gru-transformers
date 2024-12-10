@@ -18,14 +18,14 @@ class DatasetConfig:
     """
     Configuration of the experiment.
     """
-    num_examples: int = 20
+    num_examples: int = 12000
     tokenizer: str = 'bert-base-uncased'
     alpha: int = 4
     beta: int = 2
     k_split: float = 0.3
-    k_indicator: float = 0.7
+    k_indicator: float = 0.45
     start_seq_len: int = 512
-    end_seq_len: int = 1024
+    end_seq_len: int = 2048
     step: int = 512
 
 @dataclass
@@ -47,7 +47,6 @@ class TransformerConfig:
     num_hiddens = 256
     num_heads = 8
     num_layers = 6
-    num_classes = 4
     ffn_num_hiddens = 1024
     dropout = 0.1
     chunk_size: int = 512
@@ -58,7 +57,7 @@ class TrainConfig:
     Configuration for training.
     """
     learning_rate: float = 3e-4
-    num_epochs: int = 2
+    num_epochs: int = 100
     early_stopping: bool = True
     num_classes: int = 8
     early_stopping_threshold: float = 0.95
@@ -122,7 +121,8 @@ def main():
     m_all_epochs = []
     t_all_epochs = []
 
-    for seq_len in seq_lens:
+    # Begin with 2048
+    for seq_len in reversed(seq_lens):
         examples, labels = generate_dataset8(
             min_seq_len=None,
             max_seq_len=seq_len,
@@ -133,20 +133,10 @@ def main():
             k_indicator=dataset_config.k_indicator,
             grammars=grammars,
         )
-        
-        mingru_dataset = MinGRUSyntheticDataset(examples, labels, tokenizer, max_length=seq_len+2)
+
+        # Train Transformer
         transformer_dataset = TransformerSyntheticDataset(examples, labels, tokenizer, max_length=seq_len)
-        mingru_train_dataloader, mingru_val_dataloader = get_split(mingru_dataset, batch_size=16)
         transformer_train_dataloader, transformer_val_dataloader = get_split(transformer_dataset, batch_size=16)
-
-        mingru = MinGRUSynthetic(
-            vocab_size=tokenizer.vocab_size,
-            embedding_dim=mingru_config.embedding_dim,
-            num_layers=mingru_config.num_layers,
-            bidirectional=mingru_config.bidirectional,
-            num_classes=train_config.num_classes,
-        ).to(device)
-
         transformer = TransformerSynthetic(
             vocab_size=tokenizer.vocab_size,
             num_heads=transformer_config.num_heads,
@@ -158,24 +148,10 @@ def main():
             dropout=transformer_config.dropout,
             chunk_size=transformer_config.chunk_size
         ).to(device)
-
         transformer_num_params = sum(p.numel() for p in transformer.parameters())
-        mingru_num_params = sum(p.numel() for p in mingru.parameters())
-
-        mingru_loss_fn = torch.nn.CrossEntropyLoss()
-        mingru_optimizer = torch.optim.Adam(mingru.parameters(), lr=3e-4)
-
         transformer_loss_fn = torch.nn.CrossEntropyLoss()
         transformer_optimizer = torch.optim.Adam(transformer.parameters(), lr=3e-4)
-
-        m_best_training_loss, m_best_validation_loss, m_best_training_accuracy, m_best_validation_accuracy, \
-        m_validation_loss, m_validation_accuracy, m_steps, m_total_epochs, m_time_per_epoch, m_max_memory, \
-        m_all_training_losses, m_all_training_accuracies, m_all_validation_losses, m_all_validation_accuracies \
-        = train(
-            mingru, mingru_train_dataloader, mingru_val_dataloader, train_config.num_epochs, mingru_loss_fn, mingru_optimizer, \
-                early_stopping_threshold=train_config.early_stopping_threshold
-            )
-
+        print(f"Training Transformer with sequence length {seq_len}")
         t_best_training_loss, t_best_validation_loss, t_best_training_accuracy, t_best_validation_accuracy, \
         t_validation_loss, t_validation_accuracy, t_steps, t_total_epochs, t_time_per_epoch, t_max_memory, \
         t_all_training_losses, t_all_training_accuracies, t_all_validation_losses, t_all_validation_accuracies \
@@ -184,6 +160,46 @@ def main():
                 early_stopping_threshold=train_config.early_stopping_threshold
             )
         
+        del transformer
+        del transformer_train_dataloader
+        del transformer_val_dataloader
+        del transformer_dataset
+        del transformer_optimizer
+        del transformer_loss_fn
+        
+        # Train MinGRU
+        mingru_dataset = MinGRUSyntheticDataset(examples, labels, tokenizer, max_length=seq_len+2)
+        mingru_train_dataloader, mingru_val_dataloader = get_split(mingru_dataset, batch_size=16)
+        mingru = MinGRUSynthetic(
+            vocab_size=tokenizer.vocab_size,
+            embedding_dim=mingru_config.embedding_dim,
+            num_layers=mingru_config.num_layers,
+            bidirectional=mingru_config.bidirectional,
+            num_classes=train_config.num_classes,
+        ).to(device)
+        mingru_num_params = sum(p.numel() for p in mingru.parameters())
+        mingru_loss_fn = torch.nn.CrossEntropyLoss()
+        mingru_optimizer = torch.optim.Adam(mingru.parameters(), lr=3e-4)
+        print(f"Training MinGRU with sequence length {seq_len}")
+        m_best_training_loss, m_best_validation_loss, m_best_training_accuracy, m_best_validation_accuracy, \
+        m_validation_loss, m_validation_accuracy, m_steps, m_total_epochs, m_time_per_epoch, m_max_memory, \
+        m_all_training_losses, m_all_training_accuracies, m_all_validation_losses, m_all_validation_accuracies \
+        = train(
+            mingru, mingru_train_dataloader, mingru_val_dataloader, train_config.num_epochs, mingru_loss_fn, mingru_optimizer, \
+                early_stopping_threshold=train_config.early_stopping_threshold
+        )
+        
+        del mingru
+        del mingru_train_dataloader
+        del mingru_val_dataloader
+        del mingru_dataset
+        del mingru_optimizer
+        del mingru_loss_fn
+
+        del examples
+        del labels
+         
+        # Store results
         t_all_validation_losses_seq_len.append(t_all_validation_losses)
         t_all_validation_accuracies_seq_len.append(t_all_validation_accuracies)
         t_all_training_losses_seq_len.append(t_all_training_losses)
@@ -238,9 +254,7 @@ def main():
         # Plot accuracy
         plt.figure(figsize=(10, 5))
         plt.plot(mingru_epochs, m_all_training_accuracies, label="MinGRU Training Accuracy", marker='o')
-        plt.plot(mingru_epochs, m_all_validation_accuracies, label="MinGRU Validation Accuracy", marker='o')
         plt.plot(transformer_epochs, t_all_training_accuracies, label="Transformer Training Accuracy", marker='o')
-        plt.plot(transformer_epochs, t_all_validation_accuracies, label="Transformer Validation Accuracy", marker='o')
         plt.title(f"Accuracy vs Epochs {seq_len} Sequence Length", fontsize=16)
         plt.xlabel("Epochs", fontsize=14)
         plt.ylabel("Accuracy", fontsize=14)
@@ -253,10 +267,8 @@ def main():
         # Plot loss
         plt.figure(figsize=(10, 5))
         plt.plot(mingru_epochs, m_all_training_losses, label="MinGRU Training Loss", marker='o')
-        plt.plot(mingru_epochs, m_all_validation_losses, label="MinGRU Validation Loss", marker='o')
         plt.plot(transformer_epochs, t_all_training_losses, label="Transformer Training Loss", marker='o')
-        plt.plot(transformer_epochs, t_all_validation_losses, label="Transformer Validation Loss", marker='o')
-        plt.title("Loss vs Epochs {seq_len} Sequence Length", fontsize=16)
+        plt.title(f"Loss vs Epochs {seq_len} Sequence Length", fontsize=16)
         plt.xlabel("Epochs", fontsize=14)
         plt.ylabel("Loss", fontsize=14)
         plt.legend(fontsize=12)
@@ -266,17 +278,17 @@ def main():
         plt.close()
     
     plt.figure(figsize=(10, 5))
-    for i in range(seq_lens):
+    for i, seq_len in enumerate(seq_lens):
         mingru_epochs = range(1, m_all_epochs[i] + 1)
         transformer_epochs = range(1, t_all_epochs[i] + 1)
         m_all_training_accuracies = m_all_training_accuracies_seq_len[i]
 
         t_all_training_accuracies = t_all_training_accuracies_seq_len[i]
 
-        plt.plot(mingru_epochs, m_all_training_accuracies, label=f"MinGRU Training Accuracy {i}", marker='o')
-        plt.plot(transformer_epochs, t_all_training_accuracies, label=f"Transformer Training Accuracy {i}", marker='o')
+        plt.plot(mingru_epochs, m_all_training_accuracies, label=f"MinGRU Training Accuracy {seq_len}", marker='o')
+        plt.plot(transformer_epochs, t_all_training_accuracies, label=f"Transformer Training Accuracy {seq_len}", marker='o')
     
-    plt.title(f"Training Accuracy vs Epochs {seq_len} Sequence Length", fontsize=16)
+    plt.title(f"Training Accuracy vs Epochs", fontsize=16)
     plt.xlabel("Epochs", fontsize=14)
     plt.ylabel("Training Accuracy", fontsize=14)
     plt.legend(fontsize=12)
@@ -286,17 +298,17 @@ def main():
     plt.close()
 
     plt.figure(figsize=(10, 5))
-    for i in range(seq_lens):
+    for i, seq_len in enumerate(seq_lens):
         mingru_epochs = range(1, m_all_epochs[i] + 1)
         transformer_epochs = range(1, t_all_epochs[i] + 1)
         
         m_all_training_losses = m_all_training_losses_seq_len[i]
         t_all_training_losses = t_all_training_losses_seq_len[i]
 
-        plt.plot(mingru_epochs, m_all_training_losses, label=f"MinGRU Training Loss {i}", marker='o')
-        plt.plot(transformer_epochs, t_all_training_losses, label=f"Transformer Training Loss {i}", marker='o')
+        plt.plot(mingru_epochs, m_all_training_losses, label=f"MinGRU Training Loss {seq_len}", marker='o')
+        plt.plot(transformer_epochs, t_all_training_losses, label=f"Transformer Training Loss {seq_len}", marker='o')
     
-    plt.title(f"Training Loss vs Epochs {seq_len} Sequence Length", fontsize=16)
+    plt.title(f"Training Loss vs Epochs", fontsize=16)
     plt.xlabel("Epochs", fontsize=14)
     plt.ylabel("Training Loss", fontsize=14)
     plt.legend(fontsize=12)
