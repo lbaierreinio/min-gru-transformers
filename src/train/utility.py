@@ -92,24 +92,25 @@ def evaluate(model, dataloader, loss_fn):
         return (total_loss / steps), (total_correct / len(dataloader.dataset))
 
 
-def train_epoch(dataloader, device, model, loss_fn, optimizer):
+def train_epoch(dataloader, device, model, loss_fn, optimizer, accumulate_every_i=1):
     training_loss = 0
     total_correct = 0
     epoch_time = 0
     steps = 0
     model.train()
-    for batch in dataloader:
+    for (i, batch) in enumerate(dataloader):
         input = batch['input_ids'].to(device)
         labels = batch['labels'].to(device)
         mask = ~batch['attention_mask'].to(device).bool()
         start = time.time()
-        optimizer.zero_grad()
         output = model(input, mask=mask)
-        loss = loss_fn(output, labels)
+        loss = loss_fn(output, labels) / accumulate_every_i
         training_loss += loss.item()
         loss.backward()
-        optimizer.step()
-        steps += 1
+        if (i+1) % accumulate_every_i == 0 or (i+1) == len(dataloader):
+            optimizer.step()
+            optimizer.zero_grad()
+            steps += 1
         if torch.cuda.is_available():
             torch.cuda.synchronize()
         epoch_time += (time.time() - start)
@@ -130,7 +131,8 @@ def train(
         *, 
         early_stopping_threshold=None, 
         validate_every_i=1, 
-        patience=10
+        patience=10,
+        accumulate_every_i=1
     ):
 
     steps = 0
@@ -160,7 +162,7 @@ def train(
                     torch.profiler.ProfilerActivity.CUDA,
                 ] if torch.cuda.is_available() else [torch.profiler.ProfilerActivity.CPU],
             ) as prof:
-                training_loss, training_accuracy, epoch_time, epoch_steps = train_epoch(train_dataloader, device, model, loss_fn, optimizer)
+                training_loss, training_accuracy, epoch_time, epoch_steps = train_epoch(train_dataloader, device, model, loss_fn, optimizer,  accumulate_every_i=accumulate_every_i)
                 if device.type == 'cuda':
                     cur_max_memory = torch.cuda.max_memory_allocated() / (1024 * 1024)
                 else:
@@ -169,7 +171,7 @@ def train(
                             cur_max_memory = max(cur_max_memory, event.cpu_memory_usage / (1024 * 1024))
                 max_memory = max(max_memory, cur_max_memory)
         else:
-            training_loss, training_accuracy, epoch_time, epoch_steps = train_epoch(train_dataloader, device, model, loss_fn, optimizer)
+            training_loss, training_accuracy, epoch_time, epoch_steps = train_epoch(train_dataloader, device, model, loss_fn, optimizer, accumulate_every_i=accumulate_every_i)
         steps += epoch_steps
         # Compute statistics, handle early exiting
         total_time += epoch_time
