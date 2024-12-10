@@ -40,12 +40,13 @@ class TrainConfig:
     Configuration for training.
     """
     learning_rate: float = 3e-4
-    num_epochs: int = 100
+    num_epochs: int = 200
     early_stopping: bool = True
     num_classes: int = 8
     early_stopping_threshold: float = 0.95
     tokenizer: str = 'bert-base-uncased'
-    accumulate_every_i: int = 4
+    accumulate_every_i: int = 1
+    patience: int = 25
 
 """
 Script to train and compare two models on a synthetic dataset.
@@ -105,7 +106,8 @@ def main():
     t_all_training_losses, t_all_training_accuracies, t_all_validation_losses, t_all_validation_accuracies \
     = train(
         transformer, transformer_train_dataloader, transformer_val_dataloader, train_config.num_epochs, transformer_loss_fn, transformer_optimizer, \
-            early_stopping_threshold=train_config.early_stopping_threshold, accumulate_every_i=train_config.accumulate_every_i
+            early_stopping_threshold=train_config.early_stopping_threshold, accumulate_every_i=train_config.accumulate_every_i, \
+            patience=train_config.patience
         )
 
     torch.save(transformer, f"{transformer_config.name}.pt")
@@ -139,7 +141,8 @@ def main():
     m_all_training_losses, m_all_training_accuracies, m_all_validation_losses, m_all_validation_accuracies \
     = train(
         mingru, mingru_train_dataloader, mingru_val_dataloader, train_config.num_epochs, mingru_loss_fn, mingru_optimizer, \
-            early_stopping_threshold=train_config.early_stopping_threshold, accumulate_every_i=train_config.accumulate_every_i
+            early_stopping_threshold=train_config.early_stopping_threshold, accumulate_every_i=train_config.accumulate_every_i, \
+            patience = train_config.patience
     )
 
     torch.save(mingru, f"{mingru_config.name}.pt")

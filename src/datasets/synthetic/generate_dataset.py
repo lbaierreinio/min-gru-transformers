@@ -15,12 +15,12 @@ class DatasetConfig:
     """
     min_seq_len: int = None
     max_seq_len: int = 2048
-    num_examples: int = 4000
+    num_examples: int = 2000
     tokenizer: str = 'bert-base-uncased'
     alpha: int = 4
     beta: int = 2
-    k_split: float = 0.05
-    k_indicator: float = 0.025
+    k_split: float = None
+    k_indicator: float = 0.001
 
 
 """

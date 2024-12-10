@@ -42,7 +42,7 @@ class TrainConfig:
     Configuration for training.
     """
     learning_rate: float = 3e-4
-    num_epochs: int = 100
+    num_epochs: int = 200
     early_stopping: bool = True
     num_classes: int = 8
     early_stopping_threshold: float = 0.95
