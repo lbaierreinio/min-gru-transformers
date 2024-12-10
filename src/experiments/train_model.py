@@ -94,7 +94,7 @@ def main():
             bidirectional=config.bidirectional,
             num_classes=train_config.num_classes,
         ).to(device)
-    else:
+    elif model == 1:
         config = TransformerConfig()
         model = TransformerSynthetic(
             vocab_size=vocab_size,
