@@ -39,13 +39,13 @@ class MinGRUSquadQA(nn.Module):
             nn.Linear(config.classification_head_dim, 2)
         )
 
-    def forward(self, x, targets=None, mask=None, is_sequential=False):
+    def forward(self, x, targets=None, mask=None):
         B, T = x.shape
 
         x = self.encoder.wte(x) # (B, T, dim_hidden)
         # forward through layers of minGRU
         for layer in self.encoder.layers:
-            x = layer(x, mask, is_sequential=is_sequential) # (B, T, dim_hidden)
+            x = layer(x, mask) # (B, T, dim_hidden)
         # final layernorm and classifier
         x = self.encoder.ln_f(x) # (B, T, dim_hidden)
         logits = self.head(x) # (B, T, 2)
