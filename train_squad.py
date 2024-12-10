@@ -178,6 +178,13 @@ def get_predictions(batch, logits):
 
     return predictions
 
+# initialize tracking variables for best EM, F1, and combined EM+F1 scores
+best_em = 0.0
+best_f1 = 0.0
+best_combined = 0.0  
+
+checkpoint_dir = os.path.join(log_dir, "checkpoints")
+os.makedirs(checkpoint_dir, exist_ok=True)
 
 for i in range(epochs):
     t0 = time.time()
@@ -226,6 +233,7 @@ for i in range(epochs):
             em, f1 = results[em_key], results["f1"]
             em_str = f"EM: {em:.4f}"
             f1_str = f"F1: {f1:.4f}"
+            combined_score = (em + f1) / 2  
         else:
             em_str = f"EM: N/A"
             f1_str = f"F1: N/A"
@@ -233,16 +241,41 @@ for i in range(epochs):
         print(epoch_metrics)
         with open(log_file, "a") as f:
             f.write(f"{epoch_metrics}\n")
+        
+        if should_get_predictions:
+            checkpoint_improved = False
+            improved_metrics = []
 
-checkpoint_dir = os.path.join(log_dir, "checkpoints")
-os.makedirs(checkpoint_dir, exist_ok=True)
+            # check if EM improved 
+            if em > best_em:
+                best_em = em
+                checkpoint_improved = True
+                improved_metrics.append("EM")
 
-# Save last model
-checkpoint = {
-    'model_state_dict': model.state_dict(),
-    'optimizer_state_dict': optimizer.state_dict(),
-}
+            # check if F1 improved
+            if f1 > best_f1:
+                best_f1 = f1
+                checkpoint_improved = True
+                improved_metrics.append("F1")
 
-checkpoint_file = os.path.join(checkpoint_dir, f"checkpoint-{unique_identifier}.pth")
-torch.save(checkpoint, checkpoint_file)
-print("Checkpoint saved!")
+            # Check if combined score improved
+            if combined_score > best_combined:
+                best_combined = combined_score
+                checkpoint_improved = True
+                improved_metrics.append("Combined")
+
+            # if any metric improved, save a single checkpoint
+            if checkpoint_improved:
+                checkpoint = {
+                    'model_state_dict': model.state_dict(),
+                    'optimizer_state_dict': optimizer.state_dict(),
+                    'epoch': i + 1,
+                    'em': em,
+                    'f1': f1,
+                    'combined_score': combined_score
+                }
+                checkpoint_file = os.path.join(
+                    checkpoint_dir, f"{unique_identifier}-epoch-{i + 1}.pth"
+                )
+                torch.save(checkpoint, checkpoint_file)
+                print("Checkpoint saved!")
