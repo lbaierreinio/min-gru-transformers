@@ -37,12 +37,12 @@ max_lr = 6e-4 * 3
 min_lr = max_lr * 0.1
 warmup_steps = 5000
 epochs = 30
-B = 64 # batch size
+B = 32 # batch size
 
 # Model configurations
-n_layer = 4
-hidden_dim = 512
-classification_head_dim = 512
+n_layer = 10
+hidden_dim = 302
+classification_head_dim = hidden_dim
 bidirectional=True
 #########################################################
 # Create model
@@ -86,7 +86,7 @@ with open(log_file, "w") as f: # this clears the existing logs
     f.write(f"    {model_size=}\n")
     f.write(f"Training on task: {squad_version}\n")
 
-eval_every = 5 # Every n epochs, evaluate EM and F1
+eval_every = 1 # Every n epochs, evaluate EM and F1
 
 optimizer = torch.optim.AdamW(model.parameters(), lr=1e-4, fused=use_fused)
 num_training_steps = epochs * len(train_loader)  # Total number of steps
@@ -183,6 +183,10 @@ best_em = 0.0
 best_f1 = 0.0
 best_combined = 0.0  
 
+best_em_file = None
+best_f1_file = None
+best_combined_file = None
+
 checkpoint_dir = os.path.join(log_dir, "checkpoints")
 os.makedirs(checkpoint_dir, exist_ok=True)
 
@@ -244,38 +248,49 @@ for i in range(epochs):
         
         if should_get_predictions:
             checkpoint_improved = False
-            improved_metrics = []
 
-            # check if EM improved 
-            if em > best_em:
-                best_em = em
-                checkpoint_improved = True
-                improved_metrics.append("EM")
-
-            # check if F1 improved
-            if f1 > best_f1:
-                best_f1 = f1
-                checkpoint_improved = True
-                improved_metrics.append("F1")
-
-            # Check if combined score improved
-            if combined_score > best_combined:
-                best_combined = combined_score
-                checkpoint_improved = True
-                improved_metrics.append("Combined")
-
-            # if any metric improved, save a single checkpoint
-            if checkpoint_improved:
-                checkpoint = {
+            checkpoint = {
                     'model_state_dict': model.state_dict(),
                     'optimizer_state_dict': optimizer.state_dict(),
-                    'epoch': i + 1,
+                    'epoch': i,
                     'em': em,
                     'f1': f1,
                     'combined_score': combined_score
                 }
-                checkpoint_file = os.path.join(
-                    checkpoint_dir, f"{unique_identifier}-epoch-{i + 1}.pth"
+
+            # check if EM improved 
+            if em > best_em:
+                if best_em_file:  # remove the previous best checkpoint to free up space
+                    os.remove(best_em_file)
+                best_em = em
+                checkpoint_improved = True
+                best_em_file = os.path.join(
+                    checkpoint_dir, f"{unique_identifier}-best-em.pth"
                 )
-                torch.save(checkpoint, checkpoint_file)
+                torch.save(checkpoint, best_em_file)
+
+
+            # check if F1 improved
+            if f1 > best_f1:
+                if best_f1_file:
+                    os.remove(best_f1_file)
+                best_f1 = f1
+                checkpoint_improved = True
+                best_f1_file = os.path.join(
+                    checkpoint_dir, f"{unique_identifier}-best-f1.pth"
+                )
+                torch.save(checkpoint, best_f1_file)
+
+            # check if combined score improved
+            if combined_score > best_combined:
+                if best_combined_file:  
+                    os.remove(best_combined_file)
+                best_combined = combined_score
+                checkpoint_improved = True
+                best_combined_file = os.path.join(
+                    checkpoint_dir, f"{unique_identifier}-best-combined.pth"
+                )
+                torch.save(checkpoint, best_combined_file)
+
+            if checkpoint_improved:
                 print("Checkpoint saved!")
