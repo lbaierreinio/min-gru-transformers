@@ -109,9 +109,8 @@ all_constrained_configs = {
     for target_size in target_sizes
 }
 
-# Display results for the first few configurations per target size
 for target_size, configs in all_constrained_configs.items():
     print(f"Target size: {target_size} parameters")
-    for config in configs:  # Show top 5 configs per target size
+    for config in configs: 
         print(config)
     print("\n")
