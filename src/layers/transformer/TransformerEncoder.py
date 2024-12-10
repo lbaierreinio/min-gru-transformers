@@ -49,7 +49,8 @@ class TransformerEncoder(nn.Module):
             
             chunk_indices = [(i+1)*self.chunk_size-1 for i in range(0, num_chunks)]
             x = x[:, chunk_indices]
-            mask = mask[:, chunk_indices]
+            if mask is not None:
+                mask = mask[:, chunk_indices]
 
             x = self.min_gru_out(x, mask=mask) # (B, N * C, H)
 
