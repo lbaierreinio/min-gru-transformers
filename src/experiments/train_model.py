@@ -33,8 +33,8 @@ class TransformerConfig:
     num_classes = 4
     ffn_num_hiddens = 1024
     dropout = 0.1
-    max_len: int = 2560
-    chunk_size: int = None
+    max_len: int = 1024
+    chunk_size: int = 512
 
 @dataclass
 class TrainConfig:
@@ -42,11 +42,14 @@ class TrainConfig:
     Configuration for training.
     """
     learning_rate: float = 3e-4
-    num_epochs: int = 100
+    num_epochs: int = 200
     early_stopping: bool = True
     num_classes: int = 8
     early_stopping_threshold: float = 0.95
 
+"""
+Script to train a model on a synthetic dataset.
+"""
 def main():
     # (1) Retrieve arguments from the command line
     parser = argparse.ArgumentParser()

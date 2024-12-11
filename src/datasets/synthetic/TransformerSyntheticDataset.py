@@ -3,8 +3,12 @@ import torch
 
 
 class TransformerSyntheticDataset(Dataset):
-    def __init__(self, sequences, labels, tokenizer, max_length=2048):
+    def __init__(self, sequences, labels, tokenizer, max_length=2048, chunk_size=None):
 
+        if chunk_size:
+            for seq in sequences:
+                for idx in range(0, len(seq), chunk_size):
+                    seq.insert(idx+(chunk_size-1), '[CLS]')
         self.encodings = tokenizer(
             [' '.join(seq) for seq in sequences],
             padding='max_length',

@@ -4,6 +4,9 @@ import torch.nn as nn
 
 
 class PositionalEncoding(nn.Module):
+    """
+    Positional Encoder for the Transformer model.
+    """
     def __init__(self, embedding_dim, max_len=2048):
         super().__init__()
 

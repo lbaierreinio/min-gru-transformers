@@ -4,6 +4,9 @@ import argparse
 from train.utility import evaluate
 from torch.utils.data import DataLoader
 
+"""
+Script to evaluate a model on a validation dataset.
+"""
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument('--dataset_path', type=str,

@@ -3,7 +3,22 @@ import torch
 import torch.profiler
 import numpy as np
 
-def profile(dataloader, device, model, loss_fn, optimizer, warmup_steps=5, profile_steps=5):
+def profile_train(dataloader, device, model, loss_fn, optimizer, warmup_steps=5, profile_steps=5):
+    """
+    Profile the training of a model on a dataset.
+
+    Args:
+        dataloader: The dataloader to profile
+        device: The device to use
+        model: The model to profile
+        loss_fn: The loss function to use
+        optimizer: The optimizer to use
+        warmup_steps: The number of warmup steps
+        profile_steps: The number of profile steps
+    
+    Returns:
+        The mean max memory, mean time per epoch, std time per epoch, std max memory
+    """
     # Warm up
     for _ in range(0, warmup_steps):
         train_epoch(dataloader, device, model, loss_fn, optimizer)
@@ -33,10 +48,70 @@ def profile(dataloader, device, model, loss_fn, optimizer, warmup_steps=5, profi
 
     return np.mean(max_memory_times), np.mean(time_per_epochs), np.std(time_per_epochs), np.std(max_memory_times)
 
+def profile_inference(model, sequence_length, vocab_size, device, warmup_steps=5, profile_steps=25, is_sequential=False):
+    """
+    Profile the inference of the MinGRU model on a dataset.
+
+    Args:
+        model: The model to profile
+        sequence_length: The sequence length to use
+        vocab_size: The vocabulary size
+        device: The device to use
+        warmup_steps: The number of warmup steps
+        profile_steps: The number of profile steps
+        is_sequential: Whether to use sequential inference or not
+    
+    Returns:
+        The mean max memory, mean time per epoch, std time per epoch, std max memory
+    """
+    example = torch.randint(0, vocab_size, (1, sequence_length)).to(device)
+    # Warm up
+    for _ in range(0, warmup_steps):
+        with torch.no_grad():
+            model(example, is_sequential=is_sequential)
+    # Profile steps
+    max_memory_times = np.array([])
+    time_per_epochs = np.array([])
+    for _ in range(0, profile_steps):
+        with torch.profiler.profile(
+            activities=[
+                torch.profiler.ProfilerActivity.CPU,
+                torch.profiler.ProfilerActivity.CUDA,
+            ] if torch.cuda.is_available() else [torch.profiler.ProfilerActivity.CPU],
+        ) as prof:
+            start = time.time()
+            with torch.no_grad():
+                model(example, is_sequential=is_sequential)
+            if torch.cuda.is_available():
+                torch.cuda.synchronize()
+            epoch_time = time.time() - start
+            cur_max_memory = 0
+            if device.type == 'cuda':
+                cur_max_memory = torch.cuda.max_memory_allocated() / (1024 * 1024)
+            else:
+                for event in prof.key_averages():
+                    if event.cpu_memory_usage is not None:
+                        cur_max_memory = max(cur_max_memory, event.cpu_memory_usage / (1024 * 1024))
+            max_memory_times = np.append(max_memory_times, cur_max_memory)
+            time_per_epochs = np.append(time_per_epochs, epoch_time)
+
+    return np.mean(max_memory_times), np.mean(time_per_epochs), np.std(time_per_epochs), np.std(max_memory_times)
+
 def evaluate(model, dataloader, loss_fn):
+    """
+    Evaluate the model on a dataset.
+    
+    Args:
+        model: The model to evaluate
+        dataloader: The dataloader to evaluate on
+        loss_fn: The loss function to use
+    
+    Returns:
+        The mean loss, the mean accuracy
+    """
     with torch.no_grad():
         model.eval()
-        total_loss = 0.
+        total_loss = 0
         total_correct = 0.
         steps = 0
         device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
@@ -58,24 +133,39 @@ def evaluate(model, dataloader, loss_fn):
         return (total_loss / steps), (total_correct / len(dataloader.dataset))
 
 
-def train_epoch(dataloader, device, model, loss_fn, optimizer):
+def train_epoch(dataloader, device, model, loss_fn, optimizer, accumulate_every_i=1):
+    """
+    Evaluate the model for an epoch.
+    
+    Args:
+        dataloader: The dataloader to evaluate on
+        device: The device to use
+        model: The model to evaluate
+        loss_fn: The loss function to use
+        optimizer: The optimizer to use
+        accumulate_every_i: The number of steps to accumulate gradients over
+    
+    Returns:
+        The mean loss, the mean accuracy, the total time, the number of steps
+    """
     training_loss = 0
     total_correct = 0
     epoch_time = 0
     steps = 0
     model.train()
-    for batch in dataloader:
+    for (i, batch) in enumerate(dataloader):
         input = batch['input_ids'].to(device)
         labels = batch['labels'].to(device)
         mask = ~batch['attention_mask'].to(device).bool()
         start = time.time()
-        optimizer.zero_grad()
         output = model(input, mask=mask)
-        loss = loss_fn(output, labels)
+        loss = loss_fn(output, labels) / accumulate_every_i
         training_loss += loss.item()
         loss.backward()
-        optimizer.step()
-        steps += 1
+        if (i+1) % accumulate_every_i == 0 or (i+1) == len(dataloader):
+            optimizer.step()
+            optimizer.zero_grad()
+            steps += 1
         if torch.cuda.is_available():
             torch.cuda.synchronize()
         epoch_time += (time.time() - start)
@@ -96,8 +186,29 @@ def train(
         *, 
         early_stopping_threshold=None, 
         validate_every_i=1, 
-        patience=10
+        patience=10,
+        accumulate_every_i=1
     ):
+    """
+    Train the model.
+
+    Args:
+        model: The model to use
+        train_dataloader: The training dataloader
+        val_dataloader: The validation dataloader
+        num_epochs: The number of epochs to train for
+        loss_fn: The loss function to use
+        optimizer: The optimizer to use
+        early_stopping_threshold: The threshold to stop training early
+        validate_every_i: The number of epochs to wait before validating
+        patience: The number of epochs to wait before early stopping
+        accumulate_every_i: The number of steps to accumulate gradients over
+    
+    Returns:
+        The best training loss, the best validation loss, the best training accuracy, the best validation accuracy,
+        the last validation loss, the last validation accuracy, the number of steps, the total epochs, the time per epoch, 
+        the max memory, all training losses, all training accuracies, all validation losses, all validation accuracies.
+    """
 
     steps = 0
     total_time = 0
@@ -126,7 +237,7 @@ def train(
                     torch.profiler.ProfilerActivity.CUDA,
                 ] if torch.cuda.is_available() else [torch.profiler.ProfilerActivity.CPU],
             ) as prof:
-                training_loss, training_accuracy, epoch_time, epoch_steps = train_epoch(train_dataloader, device, model, loss_fn, optimizer)
+                training_loss, training_accuracy, epoch_time, epoch_steps = train_epoch(train_dataloader, device, model, loss_fn, optimizer,  accumulate_every_i=accumulate_every_i)
                 if device.type == 'cuda':
                     cur_max_memory = torch.cuda.max_memory_allocated() / (1024 * 1024)
                 else:
@@ -135,7 +246,7 @@ def train(
                             cur_max_memory = max(cur_max_memory, event.cpu_memory_usage / (1024 * 1024))
                 max_memory = max(max_memory, cur_max_memory)
         else:
-            training_loss, training_accuracy, epoch_time, epoch_steps = train_epoch(train_dataloader, device, model, loss_fn, optimizer)
+            training_loss, training_accuracy, epoch_time, epoch_steps = train_epoch(train_dataloader, device, model, loss_fn, optimizer, accumulate_every_i=accumulate_every_i)
         steps += epoch_steps
         # Compute statistics, handle early exiting
         total_time += epoch_time
