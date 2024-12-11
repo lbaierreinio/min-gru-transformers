@@ -1,7 +1,7 @@
 import torch
 import argparse
 from transformers import AutoTokenizer
-from datasets.synthetic.utility import generate_dataset8
+from datasets.synthetic.utility import generate_dataset8, EASY_GRAMMARS, DIFFICULT_GRAMMARS
 from datasets.synthetic.TransformerSyntheticDataset import TransformerSyntheticDataset
 from datasets.synthetic.MinGRUSyntheticDataset import MinGRUSyntheticDataset
 
@@ -23,6 +23,7 @@ class DatasetConfig:
     beta: int = 2
     k_split: float = None
     k_indicator: float = 0.8
+    grammars: str = 'EASY_GRAMMARS'
 
 
 """
@@ -41,27 +42,11 @@ def main():
         raise ValueError("Dataset path must be specified")
 
     config = DatasetConfig()
-    
 
+    grammars = EASY_GRAMMARS if config.grammars == 'EASY_GRAMMARS' else DIFFICULT_GRAMMARS
+    
     tokenizer = AutoTokenizer.from_pretrained(config.tokenizer)
     tokenizer.padding_side = "left"
-
-    grammars = [
-        {
-            'S': [(0.25, 'A'), (0.25, 'B'), (0.25, 'C'), (0.25, 'D')],
-            'A': [(0.25, 'A'), (0.25, 'B'), (0.25, 'C'), (0.25, 'D')],
-            'B': [(0.25, 'A'), (0.25, 'B'), (0.25, 'C'), (0.25, 'D')],
-            'C': [(0.25, 'A'), (0.25, 'B'), (0.25, 'C'), (0.25, 'D')],
-            'D': [(0.25, 'A'), (0.25, 'B'), (0.25, 'C'), (0.25, 'D')],
-        },
-        {
-            'S': [(0.85, 'A'), (0.05, 'B'), (0.05, 'C'), (0.05, 'D')],
-            'A': [(0.05, 'A'), (0.85, 'B'), (0.05, 'C'), (0.05, 'D')],
-            'B': [(0.05, 'A'), (0.05, 'B'), (0.85, 'C'), (0.05, 'D')],
-            'C': [(0.05, 'A'), (0.05, 'B'), (0.05, 'C'), (0.85, 'D')],
-            'D': [(0.85, 'A'), (0.05, 'B'), (0.05, 'C'), (0.05, 'D')],
-        },
-    ]
 
     examples, labels = generate_dataset8(
         min_seq_len=config.min_seq_len,
