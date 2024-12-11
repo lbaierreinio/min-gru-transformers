@@ -111,7 +111,7 @@ def evaluate(model, dataloader, loss_fn):
     """
     with torch.no_grad():
         model.eval()
-        total_loss = 0.
+        total_loss = 0
         total_correct = 0.
         steps = 0
         device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
