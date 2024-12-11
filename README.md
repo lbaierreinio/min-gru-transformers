@@ -35,7 +35,7 @@ Note that all synthetic experiments were run on the University of Toronto's SLUR
 
 4) Compare the memory and runtime of training both model architectures on varying sequence lengths using the following script (found under `min-gru-transformers/src/experiments`):
 
-> `train_model.py`
+> `profile_models.py`
 
 > You may tweak the training configurations, number of sequence lengths that are tested, and MinGRU/Transformer model architectures using the `MinGRUConfig`, `TransformerConfig`, and `ProfileTrainConfig` dataclasses defined within the script. The results will be saved to 2 graphs, memory_epochs.png and time_epochs.png.
 
