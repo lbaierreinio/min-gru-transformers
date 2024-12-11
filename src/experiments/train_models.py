@@ -32,7 +32,7 @@ class TransformerConfig:
     ffn_num_hiddens = 1024
     dropout = 0.1
     chunk_size: int = 512
-    max_len: int = 2048
+    max_len: int = 1024
 
 @dataclass
 class TrainConfig:
@@ -197,8 +197,8 @@ def main():
     plt.figure(figsize=(10, 5))
     plt.plot(mingru_epochs, m_all_training_accuracies, label="MinGRU Training Accuracy", marker='o')
     plt.plot(transformer_epochs, t_all_training_accuracies, label="Transformer Training Accuracy", marker='o')
-    plt.plot(mingru_epochs, m_all_validation_accuracies, label="MinGRU Validation Accuracy", marker='o')
-    plt.plot(transformer_epochs, t_all_validation_accuracies, label="Transformer Validation Accuracy", marker='o')
+    #plt.plot(mingru_epochs, m_all_validation_accuracies, label="MinGRU Validation Accuracy", marker='o')
+    # plt.plot(transformer_epochs, t_all_validation_accuracies, label="Transformer Validation Accuracy", marker='o')
     plt.title(f"Accuracy vs Epochs", fontsize=16)
     plt.xlabel("Epochs", fontsize=14)
     plt.ylabel("Accuracy", fontsize=14)
@@ -212,8 +212,8 @@ def main():
     plt.figure(figsize=(10, 5))
     plt.plot(mingru_epochs, m_all_training_losses, label="MinGRU Training Loss", marker='o')
     plt.plot(transformer_epochs, t_all_training_losses, label="Transformer Training Loss", marker='o')
-    plt.plot(mingru_epochs, m_all_validation_losses, label="MinGRU Validation Loss", marker='o')
-    plt.plot(transformer_epochs, t_all_validation_losses, label="Transformer Validation Loss", marker='o')
+    # plt.plot(mingru_epochs, m_all_validation_losses, label="MinGRU Validation Loss", marker='o')
+    # plt.plot(transformer_epochs, t_all_validation_losses, label="Transformer Validation Loss", marker='o')
     plt.title(f"Loss vs Epochs", fontsize=16)
     plt.xlabel("Epochs", fontsize=14)
     plt.ylabel("Loss", fontsize=14)

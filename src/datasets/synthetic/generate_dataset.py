@@ -14,13 +14,15 @@ class DatasetConfig:
     Configuration of the experiment.
     """
     min_seq_len: int = None
-    max_seq_len: int = 2048
-    num_examples: int = 2000
+    max_seq_len: int = 1022
+    transformer_max_seq_len: int = 1024
+    mingru_max_seq_len: int = 1024
+    num_examples: int = 1000
     tokenizer: str = 'bert-base-uncased'
     alpha: int = 4
     beta: int = 2
     k_split: float = None
-    k_indicator: float = 0.001
+    k_indicator: float = 0.8
 
 
 """
@@ -46,16 +48,18 @@ def main():
 
     grammars = [
         {
-            'S': [(0.90, 'A'), (0.05, 'B'), (0.05, 'C')],
-            'A': [(0.90, 'A'), (0.05, 'B'), (0.05, 'C')],
-            'B': [(0.90, 'A'), (0.05, 'B'), (0.05, 'C')],
-            'C': [(0.90, 'A'), (0.05, 'B'), (0.05, 'C')],
+            'S': [(0.25, 'A'), (0.25, 'B'), (0.25, 'C'), (0.25, 'D')],
+            'A': [(0.25, 'A'), (0.25, 'B'), (0.25, 'C'), (0.25, 'D')],
+            'B': [(0.25, 'A'), (0.25, 'B'), (0.25, 'C'), (0.25, 'D')],
+            'C': [(0.25, 'A'), (0.25, 'B'), (0.25, 'C'), (0.25, 'D')],
+            'D': [(0.25, 'A'), (0.25, 'B'), (0.25, 'C'), (0.25, 'D')],
         },
         {
-            'S': [(0.05, 'A'), (0.90, 'B'), (0.05, 'C')],
-            'A': [(0.05, 'A'), (0.90, 'B'), (0.05, 'C')],
-            'B': [(0.05, 'A'), (0.90, 'B'), (0.05, 'C')],
-            'C': [(0.05, 'A'), (0.90, 'B'), (0.05, 'C')],
+            'S': [(0.85, 'A'), (0.05, 'B'), (0.05, 'C'), (0.05, 'D')],
+            'A': [(0.05, 'A'), (0.85, 'B'), (0.05, 'C'), (0.05, 'D')],
+            'B': [(0.05, 'A'), (0.05, 'B'), (0.85, 'C'), (0.05, 'D')],
+            'C': [(0.05, 'A'), (0.05, 'B'), (0.05, 'C'), (0.85, 'D')],
+            'D': [(0.85, 'A'), (0.05, 'B'), (0.05, 'C'), (0.05, 'D')],
         },
     ]
 
@@ -70,8 +74,8 @@ def main():
         grammars=grammars,
     )
     
-    mingru_dataset = MinGRUSyntheticDataset(examples, labels, tokenizer, max_length=config.max_seq_len+2)
-    transformer_dataset = TransformerSyntheticDataset(examples, labels, tokenizer, max_length=config.max_seq_len)
+    mingru_dataset = MinGRUSyntheticDataset(examples, labels, tokenizer, max_length=config.transformer_max_seq_len)
+    transformer_dataset = TransformerSyntheticDataset(examples, labels, tokenizer, max_length=config.mingru_max_seq_len)
 
     torch.save(mingru_dataset, f"mingru_{dataset_path}.pt")
     torch.save(transformer_dataset, f"transformer_{dataset_path}.pt")
