@@ -17,7 +17,7 @@ class DatasetConfig:
     max_seq_len: int = 1022
     transformer_max_seq_len: int = 1024
     mingru_max_seq_len: int = 1024
-    num_examples: int = 1000
+    num_examples: int = 4000
     tokenizer: str = 'bert-base-uncased'
     alpha: int = 4
     beta: int = 2
@@ -59,8 +59,8 @@ def main():
         grammars=grammars,
     )
     
-    mingru_dataset = MinGRUSyntheticDataset(examples, labels, tokenizer, max_length=config.transformer_max_seq_len)
-    transformer_dataset = TransformerSyntheticDataset(examples, labels, tokenizer, max_length=config.mingru_max_seq_len)
+    mingru_dataset = MinGRUSyntheticDataset(examples, labels, tokenizer, max_length=config.mingru_max_seq_len)
+    transformer_dataset = TransformerSyntheticDataset(examples, labels, tokenizer, max_length=config.transformer_max_seq_len, chunk_size=512)
 
     torch.save(mingru_dataset, f"mingru_{dataset_path}.pt")
     torch.save(transformer_dataset, f"transformer_{dataset_path}.pt")
