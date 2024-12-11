@@ -60,8 +60,8 @@ def main():
         grammars=grammars,
     )
     
-    mingru_dataset = MinGRUSyntheticDataset(examples, labels, tokenizer, max_length=config.transformer_max_seq_len)
-    transformer_dataset = TransformerSyntheticDataset(examples, labels, tokenizer, max_length=config.mingru_max_seq_len, chunk_size=config.chunk_size)
+    mingru_dataset = MinGRUSyntheticDataset(examples, labels, tokenizer, max_length=config.mingru_max_seq_len)
+    transformer_dataset = TransformerSyntheticDataset(examples, labels, tokenizer, max_length=config.transformer_max_seq_len, chunk_size=config.chunk_size)
 
     torch.save(mingru_dataset, f"mingru_{dataset_path}.pt")
     torch.save(transformer_dataset, f"transformer_{dataset_path}.pt")

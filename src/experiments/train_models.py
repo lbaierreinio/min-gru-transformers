@@ -32,7 +32,7 @@ class TransformerConfig:
     ffn_num_hiddens = 1024
     dropout = 0.1
     chunk_size: int = 512
-    max_len: int = 1024
+    max_len: int = 512
 
 @dataclass
 class TrainConfig:
@@ -40,7 +40,7 @@ class TrainConfig:
     Configuration for training.
     """
     learning_rate: float = 3e-4
-    num_epochs: int = 200
+    num_epochs: int = 100
     early_stopping: bool = True
     num_classes: int = 8
     early_stopping_threshold: float = 0.95
