@@ -22,8 +22,9 @@ class DatasetConfig:
     alpha: int = 4
     beta: int = 2
     k_split: float = 0.05
-    k_indicator: float = 0.8
+    k_indicator: float = None
     grammars: str = 'EASY_GRAMMARS'
+    chunk_size: int = 512
 
 
 """
@@ -60,7 +61,7 @@ def main():
     )
     
     mingru_dataset = MinGRUSyntheticDataset(examples, labels, tokenizer, max_length=config.mingru_max_seq_len)
-    transformer_dataset = TransformerSyntheticDataset(examples, labels, tokenizer, max_length=config.transformer_max_seq_len, chunk_size=512)
+    transformer_dataset = TransformerSyntheticDataset(examples, labels, tokenizer, max_length=config.transformer_max_seq_len, chunk_size=config.chunk_size)
 
     torch.save(mingru_dataset, f"mingru_{dataset_path}.pt")
     torch.save(transformer_dataset, f"transformer_{dataset_path}.pt")

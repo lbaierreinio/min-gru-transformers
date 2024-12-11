@@ -118,18 +118,17 @@ def generate_dataset8(*, min_seq_len=None, max_seq_len, num_examples, grammars, 
             grammars[order[0]], split) + generate_grammar(grammars[order[1]], cur_seq_len - split)
 
         # Draw indicator tokens from normal distribution centered around middle of sequence
-        if k_indicator is not None:
-            idx_one = get_indicator_idx(cur_seq_len, k_indicator)
-            idx_two = get_indicator_idx(cur_seq_len, k_indicator)
-            if idx_one == idx_two:
-                idx_two += np.random.choice([-1, 1])
+        idx_one = get_indicator_idx(cur_seq_len, k_indicator)
+        idx_two = get_indicator_idx(cur_seq_len, k_indicator)
+        if idx_one == idx_two:
+            idx_two += np.random.choice([-1, 1])
 
-            sequence[idx_one] = np.random.choice(indicators)
-            sequence[idx_two] = np.random.choice(indicators)
+        sequence[idx_one] = np.random.choice(indicators)
+        sequence[idx_two] = np.random.choice(indicators)
 
-            # Compute label
-            if sequence[idx_one] == sequence[idx_two]:
-                label += len(orders)
+        # Compute label
+        if sequence[idx_one] == sequence[idx_two]:
+            label += len(orders)
 
         examples[_] = sequence
 
@@ -153,6 +152,8 @@ def get_indicator_idx(cur_seq_len, k):
         idx: int 
             Index for the indicator token.
     """
+    if k is None:
+        return np.random.randint(1, cur_seq_len - 1)
     return np.clip(int(np.random.normal(cur_seq_len // 2, cur_seq_len * k)), 1, cur_seq_len - 2)
 
 
