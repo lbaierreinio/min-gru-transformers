@@ -1,9 +1,9 @@
-# Evaluating Min GRU vs. Transformers on Long-Context Retrieval
+# Evaluating Min GRU vs. Transformers on Long-Context Reasoning and Question Answering
 
-### Prerequisites
+## Prerequisites
 - Conda
 
-### Steps to Run
+## Steps to Run
 1) Clone the repository onto your machine.
 2) Create the virtual environment: ```conda env create -f environment.yml```
 3) Activate the environment: ```conda activate pytorch_env```
@@ -13,11 +13,11 @@
 6) If running SQuAD v2 evaluation, set `export HF_HOME="/path/to/another/directory/datasets"` to set the cache directory (in particular, if working on the UofT comps server, downloading the dataset on your default home directory can use up a lot of your quota).
 
 
-# Synthetic Experiments
+## Synthetic Experiments
 
 All synthetic experiments were run on the University of Toronto's SLURM cluster. Example scripts to execute these experiments are located under the `cs-cluster` directory.
 
-## Table of Contents
+### Table of Contents
 1. [Generate a Synthetic Dataset](#generate-a-synthetic-dataset)
 2. [Train a Model](#train-a-model)
 3. [Evaluate a Model](#evaluate-a-model)
@@ -26,7 +26,7 @@ All synthetic experiments were run on the University of Toronto's SLURM cluster.
 
 ---
 
-## 1. Generate a Synthetic Dataset
+### 1. Generate a Synthetic Dataset
 
 Use the script `generate_dataset.py` to generate synthetic datasets for the Transformer and MinGRU models.
 
@@ -48,7 +48,7 @@ You can tweak the dataset parameters using the `DatasetConfig` dataclasses defin
 
 ---
 
-## 2. Train a Model
+### 2. Train a Model
 
 Train a MinGRU or Transformer model on a dataset using `train_model.py`.
 
@@ -75,7 +75,7 @@ You can customize model and training parameters using the `TransformerConfig`, `
 
 ---
 
-## 3. Evaluate a Model
+### 3. Evaluate a Model
 
 Evaluate a trained model's performance on a dataset using `evaluate_model.py`.
 
@@ -97,7 +97,7 @@ evaluate_model.py --dataset_path=dataset_path.pt --model_path=model_path.pt
 
 ---
 
-## 4. Profile Memory and Runtime
+### 4. Profile Memory and Runtime
 
 Compare the memory and runtime of training both model architectures across varying sequence lengths using `profile_train_models.py`.
 
@@ -119,7 +119,7 @@ You can customize configurations (e.g., training parameters, sequence lengths, a
 
 ---
 
-## 5. Train Both Models
+### 5. Train Both Models
 
 Train both the Transformer and MinGRU models simultaneously using `train_models.py`.
 
@@ -150,4 +150,10 @@ You can tweak training parameters and model architectures using the dataclasses 
 
 ---
 
+## SQuAD
+The training and evaluation on SQuAD is available in one command via
+```bash
+python train_squad.py
+```
 
+All hyperparameter configurations lie at the top of the script. Flags such as `use_compile` or `ampere_gpu` must be set appropriately in the script depending on the type of GPU.
