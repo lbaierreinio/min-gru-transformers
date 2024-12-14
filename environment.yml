@@ -26,6 +26,7 @@ dependencies:
       - charset-normalizer==3.4.0
       - contourpy==1.1.1
       - cycler==0.12.1
+      - evaluate==0.4.0
       - exceptiongroup==1.2.2
       - filelock==3.16.1
       - fonttools==4.55.2
